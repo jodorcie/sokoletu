@@ -924,6 +924,71 @@ function CartPage() {
   var _s = useState(false);
   var showCheckout = _s[0];
   var setShowCheckout = _s[1];
+  var _s2 = useState(0);
+  var checkoutStep = _s2[0];
+  var setCheckoutStep = _s2[1];
+  var _s3 = useState('');
+  var paymentMethod = _s3[0];
+  var setPaymentMethod = _s3[1];
+  var _s4 = useState({ phone: '', pin: '', cardNumber: '', expiry: '', cvv: '' });
+  var paymentForm = _s4[0];
+  var setPaymentForm = _s4[1];
+  var _s5 = useState('');
+  var error = _s5[0];
+  var setError = _s5[1];
+  var _s6 = useState(false);
+  var processing = _s6[0];
+  var setProcessing = _s6[1];
+
+  var savedPayments = JSON.parse(localStorage.getItem('sokoletu_payments') || '{"mpesa":null,"cards":[]}');
+
+  function resetCheckout() {
+    setShowCheckout(false);
+    setCheckoutStep(0);
+    setPaymentMethod('');
+    setPaymentForm({ phone: '', pin: '', cardNumber: '', expiry: '', cvv: '' });
+    setError('');
+    setProcessing(false);
+  }
+
+  function handlePaymentSubmit() {
+    setError('');
+    
+    if (paymentMethod === 'mpesa') {
+      var phone = paymentForm.phone || (savedPayments.mpesa ? savedPayments.mpesa.phone : '');
+      if (!phone) {
+        setError('Please enter your M-Pesa number');
+        return;
+      }
+      if (checkoutStep === 2) {
+        if (!paymentForm.pin || paymentForm.pin.length !== 4) {
+          setError('Please enter your 4-digit M-Pesa PIN');
+          return;
+        }
+        setProcessing(true);
+        setTimeout(function() {
+          setCheckoutStep(3);
+          setProcessing(false);
+        }, 2000);
+      } else {
+        setCheckoutStep(2);
+      }
+    } else if (paymentMethod === 'card') {
+      if (checkoutStep === 2 && !paymentForm.cardNumber) {
+        if (!paymentForm.cardNumber || !paymentForm.expiry || !paymentForm.cvv) {
+          setError('Please fill in all card details');
+          return;
+        }
+        setProcessing(true);
+        setTimeout(function() {
+          setCheckoutStep(3);
+          setProcessing(false);
+        }, 2000);
+      } else {
+        setCheckoutStep(2);
+      }
+    }
+  }
 
   if (cart.items.length === 0) {
     return (
@@ -996,33 +1061,276 @@ function CartPage() {
               </div>
             </div>
           </div>
-          <button onClick={function() { setShowCheckout(true); }}
+          <button onClick={function() { setShowCheckout(true); setCheckoutStep(1); }}
             className="w-full py-3 bg-[#1b4d3e] text-white font-bold rounded-xl hover:bg-[#153d31] transition-colors shadow-lg text-sm">
             Proceed to Checkout
           </button>
         </div>
       </div>
 
+      {/* Multi-Step Checkout Modal */}
       {showCheckout ? (
         <div className="fixed inset-0 z-[100] bg-black/50 flex items-center justify-center p-4">
-          <div className="bg-white w-full max-w-md rounded-2xl p-6 shadow-2xl">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-bold">Order Confirmed! 🎉</h3>
-              <button onClick={function() { setShowCheckout(false); }} className="p-2 hover:bg-gray-100 rounded-full text-lg">✕</button>
-            </div>
-            <div className="text-center py-6">
-              <div className="text-5xl mb-3">✅</div>
-              <p className="text-gray-600 text-sm mb-2">Your order has been placed successfully!</p>
-              <p className="text-gray-500 text-xs">Estimated delivery: 30-45 minutes</p>
-              <div className="mt-4 p-4 bg-green-50 rounded-xl">
-                <p className="text-sm font-medium text-green-800">Order #SKL-{Math.floor(Math.random() * 9000 + 1000)}</p>
-                <p className="text-xs text-green-600 mt-1">Track your order in the Orders tab</p>
+          <div className="bg-white w-full max-w-2xl rounded-2xl p-8 shadow-2xl max-h-[90vh] overflow-y-auto">
+            {/* Header */}
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h3 className="text-2xl font-bold text-gray-900">
+                  {checkoutStep === 1 ? 'Choose Payment Method' : 
+                   checkoutStep === 2 ? (paymentMethod === 'mpesa' ? 'M-Pesa Payment' : 'Card Payment') :
+                   'Order Confirmed! 🎉'}
+                </h3>
+                {checkoutStep < 3 && <p className="text-sm text-gray-500 mt-1">Step {checkoutStep} of 2</p>}
               </div>
+              <button onClick={resetCheckout} className="p-2 hover:bg-gray-100 rounded-full text-xl">✕</button>
             </div>
-            <button onClick={function() { setShowCheckout(false); cart.clearCart(); }}
-              className="w-full py-3 bg-[#1b4d3e] text-white font-semibold rounded-xl hover:bg-[#153d31] transition-colors">
-              Done
-            </button>
+
+            {/* Step 1: Payment Method Selection */}
+            {checkoutStep === 1 && (
+              <div className="space-y-4">
+                <p className="text-gray-600 mb-6">Select how you'd like to pay for your order</p>
+                
+                {/* M-Pesa Option */}
+                <button
+                  onClick={function() { setPaymentMethod('mpesa'); handlePaymentSubmit(); }}
+                  className="w-full p-6 border-2 border-gray-200 rounded-xl hover:border-green-500 hover:bg-green-50 transition-all text-left group"
+                >
+                  <div className="flex items-center gap-4">
+                    <div className="w-16 h-16 bg-green-600 rounded-xl flex items-center justify-center text-white font-bold text-2xl group-hover:scale-110 transition-transform">
+                      M
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="text-lg font-bold text-gray-900 mb-1">M-Pesa</h4>
+                      <p className="text-sm text-gray-600">
+                        {savedPayments.mpesa 
+                          ? `Pay with ${savedPayments.mpesa.phone}`
+                          : 'Pay with mobile money'}
+                      </p>
+                    </div>
+                    <span className="text-2xl text-gray-400 group-hover:text-green-600">→</span>
+                  </div>
+                </button>
+
+                {/* Card Option */}
+                <button
+                  onClick={function() { setPaymentMethod('card'); handlePaymentSubmit(); }}
+                  className="w-full p-6 border-2 border-gray-200 rounded-xl hover:border-blue-500 hover:bg-blue-50 transition-all text-left group"
+                >
+                  <div className="flex items-center gap-4">
+                    <div className="w-16 h-16 bg-gradient-to-br from-blue-600 to-purple-600 rounded-xl flex items-center justify-center text-white text-3xl group-hover:scale-110 transition-transform">
+                      💳
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="text-lg font-bold text-gray-900 mb-1">Credit/Debit Card</h4>
+                      <p className="text-sm text-gray-600">
+                        {savedPayments.cards.length > 0
+                          ? `${savedPayments.cards.length} card${savedPayments.cards.length > 1 ? 's' : ''} saved`
+                          : 'Pay with Visa, Mastercard, etc.'}
+                      </p>
+                    </div>
+                    <span className="text-2xl text-gray-400 group-hover:text-blue-600">→</span>
+                  </div>
+                </button>
+
+                {/* Order Total */}
+                <div className="mt-6 p-4 bg-gray-50 rounded-xl">
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-600">Total Amount</span>
+                    <span className="text-2xl font-bold text-[#1b4d3e]">{formatPrice(cart.total)}</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Step 2: Payment Details */}
+            {checkoutStep === 2 && (
+              <div className="space-y-4">
+                {/* M-Pesa Payment */}
+                {paymentMethod === 'mpesa' && (
+                  <>
+                    {!paymentForm.phone && savedPayments.mpesa ? (
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">M-Pesa Number</label>
+                        <div className="p-4 bg-green-50 border-2 border-green-200 rounded-xl">
+                          <p className="text-lg font-semibold text-gray-900">{savedPayments.mpesa.phone}</p>
+                          <p className="text-xs text-gray-600 mt-1">Using saved M-Pesa number</p>
+                        </div>
+                      </div>
+                    ) : (
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">M-Pesa Number</label>
+                        <input
+                          type="tel"
+                          value={paymentForm.phone}
+                          onChange={function(e) { setPaymentForm(Object.assign({}, paymentForm, { phone: e.target.value })); }}
+                          className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-green-500"
+                          placeholder="+255 712 345 678"
+                        />
+                      </div>
+                    )}
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">M-Pesa PIN</label>
+                      <input
+                        type="password"
+                        value={paymentForm.pin}
+                        onChange={function(e) { setPaymentForm(Object.assign({}, paymentForm, { pin: e.target.value.replace(/\D/g, '').slice(0, 4) })); }}
+                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-green-500 text-center text-2xl tracking-widest"
+                        placeholder="••••"
+                        maxLength={4}
+                      />
+                      <p className="text-xs text-gray-500 mt-1">Enter your 4-digit M-Pesa PIN</p>
+                    </div>
+                  </>
+                )}
+
+                {/* Card Payment */}
+                {paymentMethod === 'card' && (
+                  <>
+                    {savedPayments.cards.length > 0 && (
+                      <div className="mb-4">
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Saved Cards</label>
+                        <div className="space-y-2">
+                          {savedPayments.cards.map(function(card) {
+                            return (
+                              <button
+                                key={card.id}
+                                onClick={function() { 
+                                  setPaymentForm(Object.assign({}, paymentForm, { 
+                                    cardNumber: '•••• •••• •••• ' + card.last4,
+                                    expiry: card.expiry
+                                  }));
+                                }}
+                                className="w-full p-4 bg-gradient-to-r from-gray-800 to-gray-900 rounded-xl text-white text-left hover:shadow-lg transition-shadow"
+                              >
+                                <div className="flex justify-between items-center">
+                                  <div>
+                                    <p className="text-xs opacity-70">{card.type}</p>
+                                    <p className="font-mono">•••• •••• •••• {card.last4}</p>
+                                  </div>
+                                  <p className="text-sm">{card.expiry}</p>
+                                </div>
+                              </button>
+                            );
+                          })}
+                        </div>
+                        <p className="text-xs text-gray-500 mt-2">Or enter new card details below</p>
+                      </div>
+                    )}
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Card Number</label>
+                      <input
+                        type="text"
+                        value={paymentForm.cardNumber}
+                        onChange={function(e) { 
+                          var v = e.target.value.replace(/\s/g, '').replace(/\D/g, '').slice(0, 16);
+                          var formatted = v.match(/.{1,4}/g)?.join(' ') || v;
+                          setPaymentForm(Object.assign({}, paymentForm, { cardNumber: formatted }));
+                        }}
+                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-blue-500 font-mono"
+                        placeholder="1234 5678 9012 3456"
+                        maxLength={19}
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Expiry Date</label>
+                        <input
+                          type="text"
+                          value={paymentForm.expiry}
+                          onChange={function(e) {
+                            var v = e.target.value.replace(/\D/g, '').slice(0, 4);
+                            var formatted = v.length >= 2 ? v.slice(0, 2) + '/' + v.slice(2) : v;
+                            setPaymentForm(Object.assign({}, paymentForm, { expiry: formatted }));
+                          }}
+                          className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-blue-500 font-mono"
+                          placeholder="MM/YY"
+                          maxLength={5}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">CVV</label>
+                        <input
+                          type="password"
+                          value={paymentForm.cvv}
+                          onChange={function(e) { setPaymentForm(Object.assign({}, paymentForm, { cvv: e.target.value.replace(/\D/g, '').slice(0, 3) })); }}
+                          className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-blue-500 font-mono"
+                          placeholder="123"
+                          maxLength={3}
+                        />
+                      </div>
+                    </div>
+                  </>
+                )}
+
+                {error && (
+                  <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm">
+                    {error}
+                  </div>
+                )}
+
+                {/* Order Total */}
+                <div className="mt-6 p-4 bg-gray-50 rounded-xl">
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-600">Total Amount</span>
+                    <span className="text-2xl font-bold text-[#1b4d3e]">{formatPrice(cart.total)}</span>
+                  </div>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex gap-3 mt-6">
+                  <button
+                    onClick={function() { setCheckoutStep(1); setError(''); }}
+                    className="flex-1 py-3 border-2 border-gray-300 text-gray-700 font-semibold rounded-xl hover:bg-gray-50 transition-colors"
+                  >
+                    Back
+                  </button>
+                  <button
+                    onClick={handlePaymentSubmit}
+                    disabled={processing}
+                    className="flex-1 py-3 bg-[#1b4d3e] text-white font-semibold rounded-xl hover:bg-[#153d31] transition-colors disabled:opacity-50"
+                  >
+                    {processing ? 'Processing...' : 'Pay Now'}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Step 3: Order Confirmation */}
+            {checkoutStep === 3 && (
+              <div className="text-center py-8">
+                <div className="text-6xl mb-4">✅</div>
+                <h4 className="text-2xl font-bold text-gray-900 mb-2">Payment Successful!</h4>
+                <p className="text-gray-600 mb-6">Your order has been placed successfully</p>
+                
+                <div className="bg-green-50 border-2 border-green-200 rounded-xl p-6 mb-6">
+                  <p className="text-sm text-gray-600 mb-2">Order Number</p>
+                  <p className="text-2xl font-bold text-green-800 mb-3">
+                    #SKL-{Math.floor(Math.random() * 9000 + 1000)}
+                  </p>
+                  <div className="border-t border-green-200 pt-3 mt-3">
+                    <p className="text-sm text-gray-600">
+                      {paymentMethod === 'mpesa' ? 'Paid via M-Pesa' : 'Paid via Card'}
+                    </p>
+                    <p className="text-lg font-bold text-[#1b4d3e] mt-1">{formatPrice(cart.total)}</p>
+                  </div>
+                </div>
+
+                <div className="bg-blue-50 rounded-xl p-4 mb-6">
+                  <p className="text-sm text-blue-800 font-medium mb-1">📦 Estimated Delivery</p>
+                  <p className="text-sm text-blue-600">30-45 minutes</p>
+                </div>
+
+                <button
+                  onClick={function() { resetCheckout(); cart.clearCart(); }}
+                  className="w-full py-3 bg-[#1b4d3e] text-white font-semibold rounded-xl hover:bg-[#153d31] transition-colors"
+                >
+                  Continue Shopping
+                </button>
+              </div>
+            )}
           </div>
         </div>
       ) : null}
