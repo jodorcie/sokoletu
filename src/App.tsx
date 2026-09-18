@@ -146,12 +146,27 @@ function AuthProvider(props) {
     localStorage.removeItem('sokoletu_user');
   }
 
+  function updateProfile(data) {
+    var updatedUser = Object.assign({}, user, data);
+    setUser(updatedUser);
+    localStorage.setItem('sokoletu_user', JSON.stringify(updatedUser));
+    // Also update in users list
+    var users = JSON.parse(localStorage.getItem('sokoletu_users') || '[]');
+    var idx = users.findIndex(function(u) { return u.email === user.email; });
+    if (idx >= 0) {
+      users[idx] = Object.assign({}, users[idx], data);
+      localStorage.setItem('sokoletu_users', JSON.stringify(users));
+    }
+    return { success: true };
+  }
+
   var value = {
     user: user,
     login: login,
     loginWithGoogle: loginWithGoogle,
     signup: signup,
-    logout: logout
+    logout: logout,
+    updateProfile: updateProfile
   };
 
   return <AuthContext.Provider value={value}>{props.children}</AuthContext.Provider>;
@@ -973,17 +988,638 @@ function OrdersPage() {
 }
 
 /* ============================================
+   EDIT PROFILE MODAL
+   ============================================ */
+
+function EditProfileModal(props) {
+  var auth = useAuth();
+  var user = auth.user;
+  var _s = useState({
+    name: user.name || '',
+    email: user.email || '',
+    phone: user.phone || ''
+  });
+  var form = _s[0];
+  var setForm = _s[1];
+  var _s2 = useState('');
+  var error = _s2[0];
+  var setError = _s2[1];
+
+  function handleSubmit(e) {
+    e.preventDefault();
+    if (!form.name || !form.email || !form.phone) {
+      setError('Please fill in all fields');
+      return;
+    }
+    var result = auth.updateProfile({
+      name: form.name,
+      email: form.email,
+      phone: form.phone
+    });
+    if (result.success) {
+      props.onClose();
+    } else {
+      setError(result.error || 'Failed to update profile');
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-[100] bg-black/50 flex items-end justify-center" onClick={props.onClose}>
+      <div className="bg-white w-full max-w-lg rounded-t-3xl p-6 animate-slide-up" onClick={function(e) { e.stopPropagation(); }}>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-bold text-gray-900">👤 Edit Profile</h3>
+          <button onClick={props.onClose} className="p-2 hover:bg-gray-100 rounded-full text-lg">✕</button>
+        </div>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
+            <input
+              type="text"
+              value={form.name}
+              onChange={function(e) { setForm(Object.assign({}, form, { name: e.target.value })); }}
+              className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1b4d3e] focus:ring-1 focus:ring-[#1b4d3e]"
+              placeholder="Your full name"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+            <input
+              type="email"
+              value={form.email}
+              onChange={function(e) { setForm(Object.assign({}, form, { email: e.target.value })); }}
+              className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1b4d3e] focus:ring-1 focus:ring-[#1b4d3e]"
+              placeholder="your@email.com"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
+            <input
+              type="tel"
+              value={form.phone}
+              onChange={function(e) { setForm(Object.assign({}, form, { phone: e.target.value })); }}
+              className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1b4d3e] focus:ring-1 focus:ring-[#1b4d3e]"
+              placeholder="+255 712 345 678"
+            />
+          </div>
+          {error ? (
+            <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm">{error}</div>
+          ) : null}
+          <button type="submit" className="w-full py-3 bg-[#1b4d3e] text-white font-semibold rounded-xl hover:bg-[#153d31] transition-colors">
+            Save Changes
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+/* ============================================
+   ADDRESSES MODAL
+   ============================================ */
+
+function AddressesModal(props) {
+  var _s = useState(function() {
+    var saved = localStorage.getItem('sokoletu_addresses');
+    return saved ? JSON.parse(saved) : [];
+  });
+  var addresses = _s[0];
+  var setAddresses = _s[1];
+  var _s2 = useState(false);
+  var showAddForm = _s2[0];
+  var setShowAddForm = _s2[1];
+  var _s3 = useState({ label: '', street: '', city: '', region: '' });
+  var form = _s3[0];
+  var setForm = _s3[1];
+  var _s4 = useState('');
+  var error = _s4[0];
+  var setError = _s4[1];
+
+  function handleAdd(e) {
+    e.preventDefault();
+    if (!form.label || !form.street || !form.city) {
+      setError('Please fill in all required fields');
+      return;
+    }
+    var newAddress = Object.assign({}, form, { id: Date.now(), isDefault: addresses.length === 0 });
+    var updated = addresses.concat([newAddress]);
+    setAddresses(updated);
+    localStorage.setItem('sokoletu_addresses', JSON.stringify(updated));
+    setForm({ label: '', street: '', city: '', region: '' });
+    setShowAddForm(false);
+    setError('');
+  }
+
+  function handleDelete(id) {
+    var updated = addresses.filter(function(a) { return a.id !== id; });
+    setAddresses(updated);
+    localStorage.setItem('sokoletu_addresses', JSON.stringify(updated));
+  }
+
+  function setDefault(id) {
+    var updated = addresses.map(function(a) {
+      return Object.assign({}, a, { isDefault: a.id === id });
+    });
+    setAddresses(updated);
+    localStorage.setItem('sokoletu_addresses', JSON.stringify(updated));
+  }
+
+  return (
+    <div className="fixed inset-0 z-[100] bg-black/50 flex items-end justify-center" onClick={props.onClose}>
+      <div className="bg-white w-full max-w-lg rounded-t-3xl p-6 animate-slide-up max-h-[80vh] overflow-y-auto" onClick={function(e) { e.stopPropagation(); }}>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-bold text-gray-900">📍 Delivery Addresses</h3>
+          <button onClick={props.onClose} className="p-2 hover:bg-gray-100 rounded-full text-lg">✕</button>
+        </div>
+
+        {addresses.length === 0 && !showAddForm ? (
+          <div className="text-center py-8">
+            <div className="text-5xl mb-3">📍</div>
+            <p className="text-gray-500 text-sm mb-4">No addresses saved yet</p>
+          </div>
+        ) : null}
+
+        <div className="space-y-3 mb-4">
+          {addresses.map(function(addr) {
+            return (
+              <div key={addr.id} className="p-4 bg-gray-50 rounded-xl border border-gray-200">
+                <div className="flex items-start justify-between mb-2">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="font-semibold text-sm text-gray-900">{addr.label}</span>
+                      {addr.isDefault ? (
+                        <span className="px-2 py-0.5 bg-green-100 text-green-700 text-[10px] font-bold rounded-full">Default</span>
+                      ) : null}
+                    </div>
+                    <p className="text-xs text-gray-600">{addr.street}</p>
+                    <p className="text-xs text-gray-500">{addr.city}{addr.region ? ', ' + addr.region : ''}</p>
+                  </div>
+                  <div className="flex gap-2">
+                    {!addr.isDefault ? (
+                      <button onClick={function() { setDefault(addr.id); }} className="text-xs text-[#1b4d3e] font-medium">Set Default</button>
+                    ) : null}
+                    <button onClick={function() { handleDelete(addr.id); }} className="text-xs text-red-500 font-medium">Delete</button>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {showAddForm ? (
+          <form onSubmit={handleAdd} className="space-y-3 p-4 bg-gray-50 rounded-xl border border-gray-200">
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">Label (e.g., Home, Work)</label>
+              <input
+                type="text"
+                value={form.label}
+                onChange={function(e) { setForm(Object.assign({}, form, { label: e.target.value })); }}
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-[#1b4d3e]"
+                placeholder="Home"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">Street Address *</label>
+              <input
+                type="text"
+                value={form.street}
+                onChange={function(e) { setForm(Object.assign({}, form, { street: e.target.value })); }}
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-[#1b4d3e]"
+                placeholder="123 Ali Hassan Mwinyi Road"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">City *</label>
+              <input
+                type="text"
+                value={form.city}
+                onChange={function(e) { setForm(Object.assign({}, form, { city: e.target.value })); }}
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-[#1b4d3e]"
+                placeholder="Dar es Salaam"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">Region</label>
+              <input
+                type="text"
+                value={form.region}
+                onChange={function(e) { setForm(Object.assign({}, form, { region: e.target.value })); }}
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-[#1b4d3e]"
+                placeholder="Kinondoni"
+              />
+            </div>
+            {error ? (
+              <div className="p-2 bg-red-50 border border-red-200 rounded-lg text-red-600 text-xs">{error}</div>
+            ) : null}
+            <div className="flex gap-2">
+              <button type="button" onClick={function() { setShowAddForm(false); setError(''); }} className="flex-1 py-2 border border-gray-300 text-gray-700 font-medium rounded-lg text-sm hover:bg-gray-50">
+                Cancel
+              </button>
+              <button type="submit" className="flex-1 py-2 bg-[#1b4d3e] text-white font-medium rounded-lg text-sm hover:bg-[#153d31]">
+                Add Address
+              </button>
+            </div>
+          </form>
+        ) : (
+          <button onClick={function() { setShowAddForm(true); }} className="w-full py-3 border-2 border-dashed border-[#1b4d3e] text-[#1b4d3e] font-semibold rounded-xl hover:bg-green-50 transition-colors text-sm">
+            + Add New Address
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ============================================
+   PAYMENT METHODS MODAL
+   ============================================ */
+
+function PaymentMethodsModal(props) {
+  var _s = useState(function() {
+    var saved = localStorage.getItem('sokoletu_payments');
+    return saved ? JSON.parse(saved) : { mpesa: null, cards: [] };
+  });
+  var payments = _s[0];
+  var setPayments = _s[1];
+  var _s2 = useState('');
+  var activeTab = _s2[0];
+  var setActiveTab = _s2[1];
+  var _s3 = useState(false);
+  var showMpesaForm = _s3[0];
+  var setShowMpesaForm = _s3[1];
+  var _s4 = useState(false);
+  var showCardForm = _s4[0];
+  var setShowCardForm = _s4[1];
+
+  return (
+    <div className="fixed inset-0 z-[100] bg-black/50 flex items-end justify-center" onClick={props.onClose}>
+      <div className="bg-white w-full max-w-lg rounded-t-3xl p-6 animate-slide-up max-h-[85vh] overflow-y-auto" onClick={function(e) { e.stopPropagation(); }}>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-bold text-gray-900">💳 Payment Methods</h3>
+          <button onClick={props.onClose} className="p-2 hover:bg-gray-100 rounded-full text-lg">✕</button>
+        </div>
+
+        <div className="flex gap-2 mb-4">
+          <button
+            onClick={function() { setActiveTab('mpesa'); }}
+            className={'flex-1 py-2 rounded-xl text-sm font-medium transition-all ' + (activeTab !== 'card' ? 'bg-[#1b4d3e] text-white' : 'bg-gray-100 text-gray-600')}
+          >
+            📱 M-Pesa
+          </button>
+          <button
+            onClick={function() { setActiveTab('card'); }}
+            className={'flex-1 py-2 rounded-xl text-sm font-medium transition-all ' + (activeTab === 'card' ? 'bg-[#1b4d3e] text-white' : 'bg-gray-100 text-gray-600')}
+          >
+            💳 Card
+          </button>
+        </div>
+
+        {activeTab !== 'card' ? (
+          <MpesaSection payments={payments} setPayments={setPayments} showForm={showMpesaForm} setShowForm={setShowMpesaForm} />
+        ) : (
+          <CardSection payments={payments} setPayments={setPayments} showForm={showCardForm} setShowForm={setShowCardForm} />
+        )}
+      </div>
+    </div>
+  );
+}
+
+function MpesaSection(props) {
+  var _s = useState({ phone: '', pin: '' });
+  var form = _s[0];
+  var setForm = _s[1];
+  var _s2 = useState('');
+  var error = _s2[0];
+  var setError = _s2[1];
+  var _s3 = useState(false);
+  var showPinEntry = _s3[0];
+  var setShowPinEntry = _s3[1];
+  var _s4 = useState(false);
+  var loading = _s4[0];
+  var setLoading = _s4[1];
+
+  function handlePhoneSubmit(e) {
+    e.preventDefault();
+    if (!form.phone) {
+      setError('Please enter your M-Pesa number');
+      return;
+    }
+    if (!/^\+?255\d{9}$/.test(form.phone.replace(/\s/g, ''))) {
+      setError('Please enter a valid Tanzanian phone number');
+      return;
+    }
+    setError('');
+    setShowPinEntry(true);
+  }
+
+  function handlePinSubmit(e) {
+    e.preventDefault();
+    if (!form.pin || form.pin.length !== 4) {
+      setError('Please enter your 4-digit M-Pesa PIN');
+      return;
+    }
+    setLoading(true);
+    setTimeout(function() {
+      var updated = Object.assign({}, props.payments, {
+        mpesa: { phone: form.phone, last4: form.phone.slice(-4) }
+      });
+      props.setPayments(updated);
+      localStorage.setItem('sokoletu_payments', JSON.stringify(updated));
+      setLoading(false);
+      props.setShowForm(false);
+      setShowPinEntry(false);
+      setForm({ phone: '', pin: '' });
+    }, 1500);
+  }
+
+  function handleRemove() {
+    var updated = Object.assign({}, props.payments, { mpesa: null });
+    props.setPayments(updated);
+    localStorage.setItem('sokoletu_payments', JSON.stringify(updated));
+  }
+
+  if (props.payments.mpesa && !props.showForm) {
+    return (
+      <div className="space-y-3">
+        <div className="p-4 bg-green-50 rounded-xl border border-green-200">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 bg-green-600 rounded-xl flex items-center justify-center text-white font-bold text-sm">M</div>
+              <div>
+                <p className="font-semibold text-gray-900">M-Pesa</p>
+                <p className="text-sm text-gray-600">+255 *** *** {props.payments.mpesa.last4}</p>
+              </div>
+            </div>
+            <span className="px-2 py-1 bg-green-100 text-green-700 text-[10px] font-bold rounded-full">Active</span>
+          </div>
+          <button onClick={handleRemove} className="text-xs text-red-500 font-medium mt-2">Remove</button>
+        </div>
+        <button onClick={function() { props.setShowForm(true); }} className="w-full py-3 border-2 border-dashed border-[#1b4d3e] text-[#1b4d3e] font-semibold rounded-xl hover:bg-green-50 transition-colors text-sm">
+          + Add Another M-Pesa Number
+        </button>
+      </div>
+    );
+  }
+
+  if (!props.showForm) {
+    return (
+      <div className="text-center py-8">
+        <div className="text-5xl mb-3">📱</div>
+        <p className="text-gray-500 text-sm mb-4">No M-Pesa number added</p>
+        <button onClick={function() { props.setShowForm(true); }} className="px-6 py-3 bg-[#1b4d3e] text-white font-semibold rounded-xl hover:bg-[#153d31] transition-colors text-sm">
+          Add M-Pesa Number
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      {!showPinEntry ? (
+        <form onSubmit={handlePhoneSubmit} className="space-y-3">
+          <div className="p-4 bg-green-50 rounded-xl border border-green-200">
+            <div className="flex items-center gap-2 mb-2">
+              <div className="w-10 h-10 bg-green-600 rounded-lg flex items-center justify-center text-white font-bold text-xs">M</div>
+              <div>
+                <p className="font-semibold text-sm text-gray-900">M-Pesa Lipa Namba</p>
+                <p className="text-xs text-gray-600">Enter your M-Pesa phone number</p>
+              </div>
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
+            <input
+              type="tel"
+              value={form.phone}
+              onChange={function(e) { setForm(Object.assign({}, form, { phone: e.target.value })); }}
+              className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1b4d3e] focus:ring-1 focus:ring-[#1b4d3e]"
+              placeholder="+255 712 345 678"
+            />
+          </div>
+          {error ? (
+            <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm">{error}</div>
+          ) : null}
+          <button type="submit" className="w-full py-3 bg-[#1b4d3e] text-white font-semibold rounded-xl hover:bg-[#153d31] transition-colors">
+            Continue
+          </button>
+          <button type="button" onClick={function() { props.setShowForm(false); setError(''); }} className="w-full py-3 border border-gray-300 text-gray-700 font-medium rounded-xl hover:bg-gray-50">
+            Cancel
+          </button>
+        </form>
+      ) : (
+        <form onSubmit={handlePinSubmit} className="space-y-3">
+          <div className="p-4 bg-blue-50 rounded-xl border border-blue-200">
+            <p className="text-sm text-gray-700 mb-1">Enter M-Pesa PIN for:</p>
+            <p className="font-semibold text-gray-900">{form.phone}</p>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">M-Pesa PIN (4 digits)</label>
+            <input
+              type="password"
+              value={form.pin}
+              onChange={function(e) { setForm(Object.assign({}, form, { pin: e.target.value.replace(/\D/g, '').slice(0, 4) })); }}
+              className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1b4d3e] focus:ring-1 focus:ring-[#1b4d3e] text-center text-2xl tracking-widest"
+              placeholder="••••"
+              maxLength={4}
+            />
+          </div>
+          {error ? (
+            <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm">{error}</div>
+          ) : null}
+          <button type="submit" disabled={loading} className="w-full py-3 bg-[#1b4d3e] text-white font-semibold rounded-xl hover:bg-[#153d31] transition-colors disabled:opacity-50">
+            {loading ? 'Verifying...' : 'Confirm & Save'}
+          </button>
+          <button type="button" onClick={function() { setShowPinEntry(false); setError(''); setForm(Object.assign({}, form, { pin: '' })); }} className="w-full py-3 border border-gray-300 text-gray-700 font-medium rounded-xl hover:bg-gray-50">
+            Back
+          </button>
+        </form>
+      )}
+    </div>
+  );
+}
+
+function CardSection(props) {
+  var _s = useState({ number: '', expiry: '', cvv: '', name: '' });
+  var form = _s[0];
+  var setForm = _s[1];
+  var _s2 = useState('');
+  var error = _s2[0];
+  var setError = _s2[1];
+
+  function handleAdd(e) {
+    e.preventDefault();
+    if (!form.number || !form.expiry || !form.cvv || !form.name) {
+      setError('Please fill in all fields');
+      return;
+    }
+    if (form.number.replace(/\s/g, '').length !== 16) {
+      setError('Card number must be 16 digits');
+      return;
+    }
+    if (!/^\d{2}\/\d{2}$/.test(form.expiry)) {
+      setError('Expiry must be in MM/YY format');
+      return;
+    }
+    if (form.cvv.length !== 3) {
+      setError('CVV must be 3 digits');
+      return;
+    }
+    var newCard = {
+      id: Date.now(),
+      last4: form.number.slice(-4),
+      expiry: form.expiry,
+      name: form.name,
+      type: form.number.startsWith('4') ? 'Visa' : form.number.startsWith('5') ? 'Mastercard' : 'Card'
+    };
+    var updated = Object.assign({}, props.payments, { cards: props.payments.cards.concat([newCard]) });
+    props.setPayments(updated);
+    localStorage.setItem('sokoletu_payments', JSON.stringify(updated));
+    setForm({ number: '', expiry: '', cvv: '', name: '' });
+    props.setShowForm(false);
+    setError('');
+  }
+
+  function handleRemove(id) {
+    var updated = Object.assign({}, props.payments, {
+      cards: props.payments.cards.filter(function(c) { return c.id !== id; })
+    });
+    props.setPayments(updated);
+    localStorage.setItem('sokoletu_payments', JSON.stringify(updated));
+  }
+
+  function formatCardNumber(value) {
+    var v = value.replace(/\s/g, '').replace(/\D/g, '').slice(0, 16);
+    var parts = [];
+    for (var i = 0; i < v.length; i += 4) {
+      parts.push(v.slice(i, i + 4));
+    }
+    return parts.join(' ');
+  }
+
+  function formatExpiry(value) {
+    var v = value.replace(/\D/g, '').slice(0, 4);
+    if (v.length >= 2) {
+      return v.slice(0, 2) + '/' + v.slice(2);
+    }
+    return v;
+  }
+
+  return (
+    <div className="space-y-3">
+      {props.payments.cards.length === 0 && !props.showForm ? (
+        <div className="text-center py-8">
+          <div className="text-5xl mb-3">💳</div>
+          <p className="text-gray-500 text-sm mb-4">No cards added</p>
+          <button onClick={function() { props.setShowForm(true); }} className="px-6 py-3 bg-[#1b4d3e] text-white font-semibold rounded-xl hover:bg-[#153d31] transition-colors text-sm">
+            Add Card
+          </button>
+        </div>
+      ) : null}
+
+      {props.payments.cards.map(function(card) {
+        return (
+          <div key={card.id} className="p-4 bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl text-white">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-xs font-medium opacity-80">{card.type}</span>
+              <button onClick={function() { handleRemove(card.id); }} className="text-xs text-red-300 hover:text-red-200">Remove</button>
+            </div>
+            <p className="text-lg font-mono mb-2">•••• •••• •••• {card.last4}</p>
+            <div className="flex items-center justify-between text-xs">
+              <div>
+                <p className="opacity-60">Cardholder</p>
+                <p className="font-medium">{card.name}</p>
+              </div>
+              <div>
+                <p className="opacity-60">Expires</p>
+                <p className="font-medium">{card.expiry}</p>
+              </div>
+            </div>
+          </div>
+        );
+      })}
+
+      {props.showForm ? (
+        <form onSubmit={handleAdd} className="space-y-3 p-4 bg-gray-50 rounded-xl border border-gray-200">
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1">Card Number</label>
+            <input
+              type="text"
+              value={form.number}
+              onChange={function(e) { setForm(Object.assign({}, form, { number: formatCardNumber(e.target.value) })); }}
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm font-mono focus:outline-none focus:border-[#1b4d3e]"
+              placeholder="1234 5678 9012 3456"
+              maxLength={19}
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">Expiry Date</label>
+              <input
+                type="text"
+                value={form.expiry}
+                onChange={function(e) { setForm(Object.assign({}, form, { expiry: formatExpiry(e.target.value) })); }}
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm font-mono focus:outline-none focus:border-[#1b4d3e]"
+                placeholder="MM/YY"
+                maxLength={5}
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">CVV</label>
+              <input
+                type="password"
+                value={form.cvv}
+                onChange={function(e) { setForm(Object.assign({}, form, { cvv: e.target.value.replace(/\D/g, '').slice(0, 3) })); }}
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm font-mono focus:outline-none focus:border-[#1b4d3e]"
+                placeholder="123"
+                maxLength={3}
+              />
+            </div>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1">Cardholder Name</label>
+            <input
+              type="text"
+              value={form.name}
+              onChange={function(e) { setForm(Object.assign({}, form, { name: e.target.value })); }}
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-[#1b4d3e]"
+              placeholder="JOEL DOE"
+            />
+          </div>
+          {error ? (
+            <div className="p-2 bg-red-50 border border-red-200 rounded-lg text-red-600 text-xs">{error}</div>
+          ) : null}
+          <div className="flex gap-2">
+            <button type="button" onClick={function() { props.setShowForm(false); setError(''); }} className="flex-1 py-2 border border-gray-300 text-gray-700 font-medium rounded-lg text-sm hover:bg-gray-50">
+              Cancel
+            </button>
+            <button type="submit" className="flex-1 py-2 bg-[#1b4d3e] text-white font-medium rounded-lg text-sm hover:bg-[#153d31]">
+              Add Card
+            </button>
+          </div>
+        </form>
+      ) : props.payments.cards.length > 0 ? (
+        <button onClick={function() { props.setShowForm(true); }} className="w-full py-3 border-2 border-dashed border-[#1b4d3e] text-[#1b4d3e] font-semibold rounded-xl hover:bg-green-50 transition-colors text-sm">
+          + Add Another Card
+        </button>
+      ) : null}
+    </div>
+  );
+}
+
+/* ============================================
    ACCOUNT PAGE
    ============================================ */
 
 function AccountPage(props) {
   var auth = useAuth();
   var user = auth.user;
-  
+  var _s = useState(null);
+  var activeModal = _s[0];
+  var setActiveModal = _s[1];
+
   var menuItems = [
-    { icon: '👤', label: 'Edit Profile', desc: 'Name, phone, email' },
-    { icon: '📍', label: 'Delivery Addresses', desc: props.location },
-    { icon: '💳', label: 'Payment Methods', desc: 'M-Pesa, Card' },
+    { icon: '👤', label: 'Edit Profile', desc: 'Name, phone, email', action: 'profile' },
+    { icon: '📍', label: 'Delivery Addresses', desc: 'Manage your addresses', action: 'addresses' },
+    { icon: '💳', label: 'Payment Methods', desc: 'M-Pesa, Card', action: 'payments' },
     { icon: '🔔', label: 'Notifications', desc: 'Manage alerts' },
     { icon: '⭐', label: 'Rate & Review', desc: 'Your feedback matters' },
     { icon: '🔒', label: 'Privacy & Security', desc: 'Data & permissions' },
@@ -1020,7 +1656,7 @@ function AccountPage(props) {
       <div className="space-y-2">
         {menuItems.map(function(item, i) {
           return (
-            <button key={i} className="w-full flex items-center gap-3 p-4 bg-white rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-all text-left">
+            <button key={i} onClick={function() { if (item.action) setActiveModal(item.action); }} className="w-full flex items-center gap-3 p-4 bg-white rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-all text-left">
               <div className="w-10 h-10 bg-green-50 rounded-xl flex items-center justify-center text-lg">{item.icon}</div>
               <div className="flex-1">
                 <p className="text-sm font-semibold text-gray-900">{item.label}</p>
@@ -1036,6 +1672,16 @@ function AccountPage(props) {
         Log Out
       </button>
       <p className="text-center text-[10px] text-gray-300 mt-4">SOKOLETU v1.0.0</p>
+
+      {activeModal === 'profile' ? (
+        <EditProfileModal onClose={function() { setActiveModal(null); }} />
+      ) : null}
+      {activeModal === 'addresses' ? (
+        <AddressesModal onClose={function() { setActiveModal(null); }} />
+      ) : null}
+      {activeModal === 'payments' ? (
+        <PaymentMethodsModal onClose={function() { setActiveModal(null); }} />
+      ) : null}
     </div>
   );
 }
