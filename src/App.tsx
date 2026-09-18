@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { CartProvider, useCart } from './context';
-import { products, categories, smartBasket, banners, formatPrice, Product } from './data';
+import { products, categories, smartBasket, banners, formatPrice, type Product } from './data';
 import {
   Home,
   ShoppingCart,
@@ -15,35 +15,33 @@ import {
   X,
   Tag,
   Clock,
-  Star,
-  TrendingUp,
   Heart,
   Bell,
-  ChevronLeft,
   Check,
   Truck,
   Shield,
   Zap,
+  type LucideIcon,
 } from 'lucide-react';
 
 // ============ TYPES ============
 type Page = 'home' | 'categories' | 'orders' | 'cart' | 'account';
 
 // ============ APP COMPONENT ============
-const App: React.FC = () => {
+function App() {
   return (
     <CartProvider>
       <AppContent />
     </CartProvider>
   );
-};
+}
 
-const AppContent: React.FC = () => {
+function AppContent() {
   const [currentPage, setCurrentPage] = useState<Page>('home');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [showLocationModal, setShowLocationModal] = useState(false);
   const [location, setLocation] = useState('Mikocheni, DSM');
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery] = useState('');
 
   const renderPage = () => {
     switch (currentPage) {
@@ -105,15 +103,11 @@ const AppContent: React.FC = () => {
       {/* Bottom Navigation */}
       <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 z-50 shadow-lg">
         <div className="max-w-lg mx-auto flex justify-around items-center py-2">
-          {[
-            { id: 'home' as Page, icon: Home, label: 'Home' },
-            { id: 'categories' as Page, icon: Tag, label: 'Categories' },
-            { id: 'orders' as Page, icon: Package, label: 'Orders' },
-            { id: 'cart' as Page, icon: ShoppingCart, label: 'Cart' },
-            { id: 'account' as Page, icon: User, label: 'Account' },
-          ].map(({ id, icon: Icon, label }) => (
-            <NavButton key={id} active={currentPage === id} onClick={() => setCurrentPage(id)} icon={Icon} label={label} />
-          ))}
+          <NavButton active={currentPage === 'home'} onClick={() => setCurrentPage('home')} icon={Home} label="Home" />
+          <NavButton active={currentPage === 'categories'} onClick={() => setCurrentPage('categories')} icon={Tag} label="Categories" />
+          <NavButton active={currentPage === 'orders'} onClick={() => setCurrentPage('orders')} icon={Package} label="Orders" />
+          <NavButton active={currentPage === 'cart'} onClick={() => setCurrentPage('cart')} icon={ShoppingCart} label="Cart" />
+          <NavButton active={currentPage === 'account'} onClick={() => setCurrentPage('account')} icon={User} label="Account" />
         </div>
       </nav>
 
@@ -127,10 +121,17 @@ const AppContent: React.FC = () => {
       )}
     </div>
   );
-};
+}
 
 // ============ NAV BUTTON ============
-const NavButton: React.FC<{ active: boolean; onClick: () => void; icon: React.FC<any>; label: string }> = ({ active, onClick, icon: Icon, label }) => {
+interface NavButtonProps {
+  active: boolean;
+  onClick: () => void;
+  icon: LucideIcon;
+  label: string;
+}
+
+function NavButton({ active, onClick, icon: Icon, label }: NavButtonProps) {
   const { totalItems } = useCart();
   return (
     <button
@@ -150,10 +151,16 @@ const NavButton: React.FC<{ active: boolean; onClick: () => void; icon: React.FC
       <span className={`text-[10px] ${active ? 'font-semibold' : ''}`}>{label}</span>
     </button>
   );
-};
+}
 
 // ============ LOCATION MODAL ============
-const LocationModal: React.FC<{ currentLocation: string; onClose: () => void; onSave: (loc: string) => void }> = ({ currentLocation, onClose, onSave }) => {
+interface LocationModalProps {
+  currentLocation: string;
+  onClose: () => void;
+  onSave: (loc: string) => void;
+}
+
+function LocationModal({ currentLocation, onClose, onSave }: LocationModalProps) {
   const [newLocation, setNewLocation] = useState(currentLocation);
   const suggestions = ['Mikocheni, DSM', 'Masaki, DSM', 'Kinondoni, DSM', 'Mbezi Beach, DSM', 'Kariakoo, DSM', 'Upanga, DSM'];
 
@@ -201,10 +208,15 @@ const LocationModal: React.FC<{ currentLocation: string; onClose: () => void; on
       </div>
     </div>
   );
-};
+}
 
 // ============ HOME PAGE ============
-const HomePage: React.FC<{ searchQuery: string; onCategorySelect: (cat: string) => void }> = ({ onCategorySelect }) => {
+interface HomePageProps {
+  searchQuery: string;
+  onCategorySelect: (cat: string) => void;
+}
+
+function HomePage({ onCategorySelect }: HomePageProps) {
   const [bannerIndex, setBannerIndex] = useState(0);
   const [search, setSearch] = useState('');
 
@@ -242,7 +254,7 @@ const HomePage: React.FC<{ searchQuery: string; onCategorySelect: (cat: string) 
               className={`min-w-full bg-gradient-to-r ${banner.gradient} p-6 rounded-2xl text-white relative overflow-hidden`}
             >
               <div className="relative z-10">
-                <p className="text-xs font-medium opacity-80 mb-1">🔥 Today's Deal</p>
+                <p className="text-xs font-medium opacity-80 mb-1">🔥 Today&apos;s Deal</p>
                 <h2 className="text-xl font-bold mb-1">{banner.title}</h2>
                 <p className="text-sm opacity-90">{banner.subtitle}</p>
                 <button className="mt-3 px-4 py-2 bg-white/20 backdrop-blur-sm rounded-lg text-sm font-medium hover:bg-white/30 transition-colors">
@@ -354,10 +366,14 @@ const HomePage: React.FC<{ searchQuery: string; onCategorySelect: (cat: string) 
       </div>
     </div>
   );
-};
+}
 
 // ============ PRODUCT CARD ============
-const ProductCard: React.FC<{ product: Product }> = ({ product }) => {
+interface ProductCardProps {
+  product: Product;
+}
+
+function ProductCard({ product }: ProductCardProps) {
   const { addItem, items, updateQuantity } = useCart();
   const cartItem = items.find(i => i.id === product.id);
 
@@ -414,10 +430,15 @@ const ProductCard: React.FC<{ product: Product }> = ({ product }) => {
       </div>
     </div>
   );
-};
+}
 
 // ============ CATEGORIES PAGE ============
-const CategoriesPage: React.FC<{ selectedCategory: string | null; setSelectedCategory: (cat: string | null) => void }> = ({ selectedCategory, setSelectedCategory }) => {
+interface CategoriesPageProps {
+  selectedCategory: string | null;
+  setSelectedCategory: (cat: string | null) => void;
+}
+
+function CategoriesPage({ selectedCategory, setSelectedCategory }: CategoriesPageProps) {
   const filteredProducts = selectedCategory
     ? products.filter(p => p.category === selectedCategory)
     : products;
@@ -458,10 +479,10 @@ const CategoriesPage: React.FC<{ selectedCategory: string | null; setSelectedCat
       </div>
     </div>
   );
-};
+}
 
 // ============ CART PAGE ============
-const CartPage: React.FC = () => {
+function CartPage() {
   const { items, updateQuantity, removeItem, subtotal, deliveryFee, total, clearCart } = useCart();
   const [showCheckout, setShowCheckout] = useState(false);
 
@@ -585,10 +606,10 @@ const CartPage: React.FC = () => {
       )}
     </div>
   );
-};
+}
 
 // ============ ORDERS PAGE ============
-const OrdersPage: React.FC = () => {
+function OrdersPage() {
   const mockOrders = [
     { id: 'SKL-4521', date: 'Today, 2:30 PM', status: 'Delivered', items: 5, total: 18500, emoji: '✅' },
     { id: 'SKL-4498', date: 'Yesterday, 10:15 AM', status: 'Delivered', items: 3, total: 12000, emoji: '✅' },
@@ -631,16 +652,21 @@ const OrdersPage: React.FC = () => {
       )}
     </div>
   );
-};
+}
 
 // ============ ACCOUNT PAGE ============
-const AccountPage: React.FC<{ location: string; setLocation: (loc: string) => void }> = ({ location }) => {
+interface AccountPageProps {
+  location: string;
+  setLocation: (loc: string) => void;
+}
+
+function AccountPage({ location }: AccountPageProps) {
   const menuItems = [
     { icon: User, label: 'Edit Profile', desc: 'Name, phone, email' },
     { icon: MapPin, label: 'Delivery Addresses', desc: location },
     { icon: Tag, label: 'Payment Methods', desc: 'M-Pesa, Card' },
     { icon: Bell, label: 'Notifications', desc: 'Manage alerts' },
-    { icon: Star, label: 'Rate & Review', desc: 'Your feedback matters' },
+    { icon: Heart, label: 'Favorites', desc: 'Your saved items' },
     { icon: Shield, label: 'Privacy & Security', desc: 'Data & permissions' },
   ];
 
@@ -699,6 +725,6 @@ const AccountPage: React.FC<{ location: string; setLocation: (loc: string) => vo
       <p className="text-center text-[10px] text-gray-300 mt-4">SOKOLETU v1.0.0</p>
     </div>
   );
-};
+}
 
 export default App;
