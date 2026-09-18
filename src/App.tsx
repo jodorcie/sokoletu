@@ -126,16 +126,16 @@ function AuthProvider(props) {
     return { success: true };
   }
 
-  function signup(name, email, phone, password) {
+  function signup(name, email, phone, password, street, landmark) {
     var users = JSON.parse(localStorage.getItem('sokoletu_users') || '[]');
     var exists = users.find(function(u) { return u.email === email; });
     if (exists) {
       return { success: false, error: 'Email already registered' };
     }
-    var newUser = { name: name, email: email, phone: phone, password: password };
+    var newUser = { name: name, email: email, phone: phone, password: password, street: street || '', landmark: landmark || '' };
     users.push(newUser);
     localStorage.setItem('sokoletu_users', JSON.stringify(users));
-    var userData = { name: name, email: email, phone: phone };
+    var userData = { name: name, email: email, phone: phone, street: street || '', landmark: landmark || '' };
     setUser(userData);
     localStorage.setItem('sokoletu_user', JSON.stringify(userData));
     return { success: true };
@@ -317,7 +317,7 @@ function LoginPage(props) {
 
 function SignupPage(props) {
   var auth = useAuth();
-  var _s = useState({ name: '', email: '', phone: '', password: '', confirmPassword: '' });
+  var _s = useState({ name: '', email: '', phone: '', password: '', confirmPassword: '', street: '', landmark: '' });
   var form = _s[0];
   var setForm = _s[1];
   var _s2 = useState('');
@@ -332,7 +332,7 @@ function SignupPage(props) {
     setError('');
     
     if (!form.name || !form.email || !form.phone || !form.password || !form.confirmPassword) {
-      setError('Please fill in all fields');
+      setError('Please fill in all required fields');
       return;
     }
     if (form.password !== form.confirmPassword) {
@@ -346,7 +346,7 @@ function SignupPage(props) {
 
     setLoading(true);
     setTimeout(function() {
-      var result = auth.signup(form.name, form.email, form.phone, form.password);
+      var result = auth.signup(form.name, form.email, form.phone, form.password, form.street, form.landmark);
       setLoading(false);
       if (!result.success) {
         setError(result.error);
@@ -449,6 +449,28 @@ function SignupPage(props) {
               onChange={function(e) { setForm(Object.assign({}, form, { confirmPassword: e.target.value })); }}
               className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1b4d3e] focus:ring-1 focus:ring-[#1b4d3e]"
               placeholder="••••••••"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Street Address (Optional)</label>
+            <input
+              type="text"
+              value={form.street}
+              onChange={function(e) { setForm(Object.assign({}, form, { street: e.target.value })); }}
+              className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1b4d3e] focus:ring-1 focus:ring-[#1b4d3e]"
+              placeholder="e.g., 123 Ali Hassan Mwinyi Road"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Permanent Landmark (Optional)</label>
+            <input
+              type="text"
+              value={form.landmark}
+              onChange={function(e) { setForm(Object.assign({}, form, { landmark: e.target.value })); }}
+              className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1b4d3e] focus:ring-1 focus:ring-[#1b4d3e]"
+              placeholder="e.g., Near Amana Hospital, Opposite Mikocheni Primary School"
             />
           </div>
 
@@ -997,7 +1019,9 @@ function EditProfileModal(props) {
   var _s = useState({
     name: user.name || '',
     email: user.email || '',
-    phone: user.phone || ''
+    phone: user.phone || '',
+    street: user.street || '',
+    landmark: user.landmark || ''
   });
   var form = _s[0];
   var setForm = _s[1];
@@ -1008,13 +1032,15 @@ function EditProfileModal(props) {
   function handleSubmit(e) {
     e.preventDefault();
     if (!form.name || !form.email || !form.phone) {
-      setError('Please fill in all fields');
+      setError('Please fill in all required fields');
       return;
     }
     var result = auth.updateProfile({
       name: form.name,
       email: form.email,
-      phone: form.phone
+      phone: form.phone,
+      street: form.street,
+      landmark: form.landmark
     });
     if (result.success) {
       props.onClose();
@@ -1059,6 +1085,26 @@ function EditProfileModal(props) {
               onChange={function(e) { setForm(Object.assign({}, form, { phone: e.target.value })); }}
               className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1b4d3e] focus:ring-1 focus:ring-[#1b4d3e]"
               placeholder="+255 712 345 678"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Street Address</label>
+            <input
+              type="text"
+              value={form.street}
+              onChange={function(e) { setForm(Object.assign({}, form, { street: e.target.value })); }}
+              className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1b4d3e] focus:ring-1 focus:ring-[#1b4d3e]"
+              placeholder="e.g., 123 Ali Hassan Mwinyi Road"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Permanent Landmark</label>
+            <input
+              type="text"
+              value={form.landmark}
+              onChange={function(e) { setForm(Object.assign({}, form, { landmark: e.target.value })); }}
+              className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1b4d3e] focus:ring-1 focus:ring-[#1b4d3e]"
+              placeholder="e.g., Near Amana Hospital, Opposite Mikocheni Primary School"
             />
           </div>
           {error ? (
@@ -1617,7 +1663,7 @@ function AccountPage(props) {
   var setActiveModal = _s[1];
 
   var menuItems = [
-    { icon: '👤', label: 'Edit Profile', desc: 'Name, phone, email', action: 'profile' },
+    { icon: '👤', label: 'Edit Profile', desc: 'Name, phone, location', action: 'profile' },
     { icon: '📍', label: 'Delivery Addresses', desc: 'Manage your addresses', action: 'addresses' },
     { icon: '💳', label: 'Payment Methods', desc: 'M-Pesa, Card', action: 'payments' },
     { icon: '🔔', label: 'Notifications', desc: 'Manage alerts' },
@@ -1631,10 +1677,16 @@ function AccountPage(props) {
         <div className="absolute top-0 right-0 w-24 h-24 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/2"></div>
         <div className="flex items-center gap-4">
           <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center text-2xl">👤</div>
-          <div>
+          <div className="flex-1">
             <h2 className="text-lg font-bold">{user.name}</h2>
             <p className="text-sm text-green-200">{user.phone}</p>
             <p className="text-xs text-green-300 mt-1">{user.email}</p>
+            {user.street ? (
+              <p className="text-xs text-green-200 mt-1">📍 {user.street}</p>
+            ) : null}
+            {user.landmark ? (
+              <p className="text-xs text-green-200">🏛️ {user.landmark}</p>
+            ) : null}
           </div>
         </div>
         <div className="flex gap-3 mt-4">
