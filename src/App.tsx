@@ -126,16 +126,16 @@ function AuthProvider(props) {
     return { success: true };
   }
 
-  function signup(name, email, phone, password) {
+  function signup(name, email, phone, password, street, landmark) {
     var users = JSON.parse(localStorage.getItem('sokoletu_users') || '[]');
     var exists = users.find(function(u) { return u.email === email; });
     if (exists) {
       return { success: false, error: 'Email already registered' };
     }
-    var newUser = { name: name, email: email, phone: phone, password: password };
+    var newUser = { name: name, email: email, phone: phone, password: password, street: street || '', landmark: landmark || '' };
     users.push(newUser);
     localStorage.setItem('sokoletu_users', JSON.stringify(users));
-    var userData = { name: name, email: email, phone: phone };
+    var userData = { name: name, email: email, phone: phone, street: street || '', landmark: landmark || '' };
     setUser(userData);
     localStorage.setItem('sokoletu_user', JSON.stringify(userData));
     return { success: true };
@@ -220,8 +220,35 @@ function LoginPage(props) {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#1b4d3e] to-[#2d7a5f] flex items-center justify-center p-4">
-      <div className="bg-white rounded-3xl p-8 w-full max-w-md shadow-2xl">
+    <div className="min-h-screen flex">
+      {/* Left Side - Branding */}
+      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-[#1b4d3e] to-[#2d7a5f] items-center justify-center p-12">
+        <div className="text-white max-w-md">
+          <div className="w-20 h-20 bg-white/20 rounded-3xl flex items-center justify-center mb-8">
+            <span className="text-white font-bold text-4xl">S</span>
+          </div>
+          <h1 className="text-5xl font-bold mb-4">SOKOLETU</h1>
+          <p className="text-xl text-green-100 mb-8">Fresh local delivery at your doorstep</p>
+          <div className="space-y-4">
+            <div className="flex items-center gap-3">
+              <span className="text-2xl">🥬</span>
+              <span className="text-green-100">Fresh vegetables from local markets</span>
+            </div>
+            <div className="flex items-center gap-3">
+              <span className="text-2xl">🚚</span>
+              <span className="text-green-100">Fast delivery in 30-45 minutes</span>
+            </div>
+            <div className="flex items-center gap-3">
+              <span className="text-2xl">💰</span>
+              <span className="text-green-100">Save up to 20% on daily deals</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Right Side - Login Form */}
+      <div className="flex-1 flex items-center justify-center p-8 bg-gray-50">
+      <div className="bg-white rounded-3xl p-8 w-full max-w-md shadow-xl">
         <div className="text-center mb-8">
           <div className="w-16 h-16 bg-gradient-to-br from-[#1b4d3e] to-[#2d7a5f] rounded-2xl flex items-center justify-center mx-auto mb-4">
             <span className="text-white font-bold text-2xl">S</span>
@@ -307,6 +334,7 @@ function LoginPage(props) {
           </p>
         </div>
       </div>
+      </div>
     </div>
   );
 }
@@ -317,7 +345,7 @@ function LoginPage(props) {
 
 function SignupPage(props) {
   var auth = useAuth();
-  var _s = useState({ name: '', email: '', phone: '', password: '', confirmPassword: '' });
+  var _s = useState({ name: '', email: '', phone: '', password: '', confirmPassword: '', street: '', landmark: '' });
   var form = _s[0];
   var setForm = _s[1];
   var _s2 = useState('');
@@ -332,7 +360,7 @@ function SignupPage(props) {
     setError('');
     
     if (!form.name || !form.email || !form.phone || !form.password || !form.confirmPassword) {
-      setError('Please fill in all fields');
+      setError('Please fill in all required fields');
       return;
     }
     if (form.password !== form.confirmPassword) {
@@ -346,7 +374,7 @@ function SignupPage(props) {
 
     setLoading(true);
     setTimeout(function() {
-      var result = auth.signup(form.name, form.email, form.phone, form.password);
+      var result = auth.signup(form.name, form.email, form.phone, form.password, form.street, form.landmark);
       setLoading(false);
       if (!result.success) {
         setError(result.error);
@@ -363,8 +391,35 @@ function SignupPage(props) {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#1b4d3e] to-[#2d7a5f] flex items-center justify-center p-4">
-      <div className="bg-white rounded-3xl p-8 w-full max-w-md shadow-2xl">
+    <div className="min-h-screen flex">
+      {/* Left Side - Branding */}
+      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-[#1b4d3e] to-[#2d7a5f] items-center justify-center p-12">
+        <div className="text-white max-w-md">
+          <div className="w-20 h-20 bg-white/20 rounded-3xl flex items-center justify-center mb-8">
+            <span className="text-white font-bold text-4xl">S</span>
+          </div>
+          <h1 className="text-5xl font-bold mb-4">Join SOKOLETU</h1>
+          <p className="text-xl text-green-100 mb-8">Fresh local delivery at your doorstep</p>
+          <div className="space-y-4">
+            <div className="flex items-center gap-3">
+              <span className="text-2xl">🛒</span>
+              <span className="text-green-100">Shop from trusted local vendors</span>
+            </div>
+            <div className="flex items-center gap-3">
+              <span className="text-2xl">📱</span>
+              <span className="text-green-100">Pay easily with M-Pesa or Card</span>
+            </div>
+            <div className="flex items-center gap-3">
+              <span className="text-2xl">🎁</span>
+              <span className="text-green-100">Get exclusive member discounts</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Right Side - Signup Form */}
+      <div className="flex-1 flex items-center justify-center p-8 bg-gray-50">
+      <div className="bg-white rounded-3xl p-8 w-full max-w-md shadow-xl">
         <div className="text-center mb-8">
           <div className="w-16 h-16 bg-gradient-to-br from-[#1b4d3e] to-[#2d7a5f] rounded-2xl flex items-center justify-center mx-auto mb-4">
             <span className="text-white font-bold text-2xl">S</span>
@@ -452,6 +507,28 @@ function SignupPage(props) {
             />
           </div>
 
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Street Address (Optional)</label>
+            <input
+              type="text"
+              value={form.street}
+              onChange={function(e) { setForm(Object.assign({}, form, { street: e.target.value })); }}
+              className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1b4d3e] focus:ring-1 focus:ring-[#1b4d3e]"
+              placeholder="e.g., 123 Ali Hassan Mwinyi Road"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Permanent Landmark (Optional)</label>
+            <input
+              type="text"
+              value={form.landmark}
+              onChange={function(e) { setForm(Object.assign({}, form, { landmark: e.target.value })); }}
+              className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1b4d3e] focus:ring-1 focus:ring-[#1b4d3e]"
+              placeholder="e.g., Near Amana Hospital, Opposite Mikocheni Primary School"
+            />
+          </div>
+
           {error ? (
             <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm">
               {error}
@@ -475,6 +552,7 @@ function SignupPage(props) {
             </button>
           </p>
         </div>
+      </div>
       </div>
     </div>
   );
@@ -563,23 +641,23 @@ function ProductCard(props) {
   }
 
   return (
-    <div className="bg-white rounded-2xl p-3 shadow-sm border border-gray-100 hover:shadow-md transition-all">
+    <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 hover:shadow-md transition-all">
       <div className="relative">
-        <div className="w-full h-24 bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl flex items-center justify-center text-4xl mb-2">
+        <div className="w-full h-32 bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl flex items-center justify-center text-5xl mb-3">
           {product.emoji}
         </div>
         {product.discount ? (
-          <span className="absolute top-1 left-1 px-2 py-0.5 bg-red-500 text-white text-[10px] font-bold rounded-lg">
+          <span className="absolute top-2 left-2 px-2 py-1 bg-red-500 text-white text-xs font-bold rounded-lg">
             {product.discount}% OFF
           </span>
         ) : product.fresh ? (
-          <span className="absolute top-1 left-1 px-2 py-0.5 bg-green-500 text-white text-[10px] font-bold rounded-lg">
+          <span className="absolute top-2 left-2 px-2 py-1 bg-green-500 text-white text-xs font-bold rounded-lg">
             Fresh
           </span>
         ) : null}
       </div>
-      <h4 className="text-sm font-semibold text-gray-900 truncate">{product.name}</h4>
-      <p className="text-[10px] text-gray-400 mb-1">{product.unit} · {product.vendor}</p>
+      <h4 className="text-base font-semibold text-gray-900 truncate">{product.name}</h4>
+      <p className="text-xs text-gray-400 mb-2">{product.unit} · {product.vendor}</p>
       <div className="flex items-center justify-between mt-1">
         <div>
           <span className="text-sm font-bold text-[#1b4d3e]">{formatPrice(product.price)}</span>
@@ -607,18 +685,18 @@ function ProductCard(props) {
 
 function NavButton(props) {
   var cart = useCart();
-  var cls = 'flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-all ' + (props.active ? 'text-[#1b4d3e]' : 'text-gray-400');
+  var cls = 'flex items-center gap-2 px-4 py-2 rounded-lg transition-all ' + (props.active ? 'bg-[#1b4d3e] text-white' : 'text-gray-600 hover:bg-gray-100');
   return (
     <button onClick={props.onClick} className={cls}>
       <div className="relative">
-        <span className="text-xl">{props.icon}</span>
+        <span className="text-lg">{props.icon}</span>
         {props.label === 'Cart' && cart.totalItems > 0 ? (
           <span className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
             {cart.totalItems}
           </span>
         ) : null}
       </div>
-      <span className={'text-[10px] ' + (props.active ? 'font-semibold' : '')}>{props.label}</span>
+      <span className={'text-sm ' + (props.active ? 'font-semibold' : '')}>{props.label}</span>
     </button>
   );
 }
@@ -634,8 +712,8 @@ function LocationModal(props) {
   var suggestions = ['Mikocheni, DSM', 'Masaki, DSM', 'Kinondoni, DSM', 'Mbezi Beach, DSM', 'Kariakoo, DSM', 'Upanga, DSM'];
 
   return (
-    <div className="fixed inset-0 z-[100] bg-black/50 flex items-end justify-center" onClick={props.onClose}>
-      <div className="bg-white w-full max-w-lg rounded-t-3xl p-6 animate-slide-up" onClick={function(e) { e.stopPropagation(); }}>
+    <div className="fixed inset-0 z-[100] bg-black/50 flex items-center justify-center p-4" onClick={props.onClose}>
+      <div className="bg-white w-full max-w-md rounded-2xl p-6 shadow-2xl" onClick={function(e) { e.stopPropagation(); }}>
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-bold text-gray-900">📍 Delivery Location</h3>
           <button onClick={props.onClose} className="p-2 hover:bg-gray-100 rounded-full text-lg">✕</button>
@@ -725,15 +803,15 @@ function HomePage(props) {
           <h3 className="font-bold text-gray-900">Categories</h3>
           <button className="text-xs text-[#1b4d3e] font-medium">See All</button>
         </div>
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-6 gap-4">
           {categories.map(function(cat) {
             return (
               <button key={cat.id} onClick={function() { props.onCategorySelect(cat.id); }}
-                className="flex flex-col items-center p-3 bg-white rounded-2xl shadow-sm hover:shadow-md transition-all border border-gray-100">
-                <div className={'w-12 h-12 rounded-xl bg-gradient-to-br ' + cat.color + ' flex items-center justify-center text-2xl mb-2 shadow-sm'}>
+                className="flex flex-col items-center p-4 bg-white rounded-2xl shadow-sm hover:shadow-md transition-all border border-gray-100">
+                <div className={'w-16 h-16 rounded-xl bg-gradient-to-br ' + cat.color + ' flex items-center justify-center text-3xl mb-2 shadow-sm'}>
                   {cat.emoji}
                 </div>
-                <span className="text-xs font-medium text-gray-700">{cat.name}</span>
+                <span className="text-sm font-medium text-gray-700">{cat.name}</span>
               </button>
             );
           })}
@@ -771,7 +849,7 @@ function HomePage(props) {
           </div>
           <button className="text-xs text-[#1b4d3e] font-medium">See All</button>
         </div>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-4 gap-4">
           {freshProducts.map(function(product) { return <ProductCard key={product.id} product={product} />; })}
         </div>
       </div>
@@ -781,12 +859,12 @@ function HomePage(props) {
           <h3 className="font-bold text-gray-900">Hot Deals 🔥</h3>
           <button className="text-xs text-[#1b4d3e] font-medium">See All</button>
         </div>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-4 gap-4">
           {dealProducts.map(function(product) { return <ProductCard key={product.id} product={product} />; })}
         </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-3 pt-2">
+      <div className="grid grid-cols-3 gap-4 pt-2">
         <div className="flex flex-col items-center text-center p-3 bg-white rounded-xl border border-gray-100">
           <span className="text-xl mb-1">🚚</span>
           <span className="text-[10px] text-gray-600 font-medium">Fast Delivery</span>
@@ -830,7 +908,7 @@ function CategoriesPage(props) {
           );
         })}
       </div>
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-4 gap-4">
         {filteredProducts.map(function(product) { return <ProductCard key={product.id} product={product} />; })}
       </div>
     </div>
@@ -859,70 +937,75 @@ function CartPage() {
   }
 
   return (
-    <div className="px-4 py-4">
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-xl font-bold text-gray-900">My Cart ({cart.items.length})</h2>
-        <button onClick={cart.clearCart} className="text-xs text-red-500 font-medium">Clear All</button>
-      </div>
+    <div className="grid grid-cols-3 gap-6">
+      {/* Cart Items */}
+      <div className="col-span-2">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-2xl font-bold text-gray-900">My Cart ({cart.items.length})</h2>
+          <button onClick={cart.clearCart} className="text-sm text-red-500 font-medium hover:text-red-700">Clear All</button>
+        </div>
 
-      <div className="space-y-3 mb-6">
-        {cart.items.map(function(item) {
-          return (
-            <div key={item.id} className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex items-center gap-3">
-              <div className="w-14 h-14 bg-gray-50 rounded-xl flex items-center justify-center text-2xl flex-shrink-0">{item.emoji}</div>
-              <div className="flex-1 min-w-0">
-                <h4 className="text-sm font-semibold text-gray-900 truncate">{item.name}</h4>
-                <p className="text-xs text-gray-400">{item.unit}</p>
-                <p className="text-sm font-bold text-[#1b4d3e]">{formatPrice(item.price * item.quantity)}</p>
-              </div>
-              <div className="flex flex-col items-end gap-2">
-                <button onClick={function() { cart.removeItem(item.id); }} className="p-1 text-red-400 text-sm">🗑️</button>
-                <div className="flex items-center gap-1.5">
-                  <button onClick={function() { cart.updateQuantity(item.id, item.quantity - 1); }} className="w-7 h-7 flex items-center justify-center bg-gray-100 rounded-lg text-sm font-bold">−</button>
-                  <span className="text-sm font-bold w-5 text-center">{item.quantity}</span>
-                  <button onClick={function() { cart.updateQuantity(item.id, item.quantity + 1); }} className="w-7 h-7 flex items-center justify-center bg-[#1b4d3e] text-white rounded-lg text-sm font-bold">+</button>
+        <div className="space-y-3">
+          {cart.items.map(function(item) {
+            return (
+              <div key={item.id} className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex items-center gap-3">
+                <div className="w-14 h-14 bg-gray-50 rounded-xl flex items-center justify-center text-2xl flex-shrink-0">{item.emoji}</div>
+                <div className="flex-1 min-w-0">
+                  <h4 className="text-sm font-semibold text-gray-900 truncate">{item.name}</h4>
+                  <p className="text-xs text-gray-400">{item.unit}</p>
+                  <p className="text-sm font-bold text-[#1b4d3e]">{formatPrice(item.price * item.quantity)}</p>
+                </div>
+                <div className="flex flex-col items-end gap-2">
+                  <button onClick={function() { cart.removeItem(item.id); }} className="p-1 text-red-400 text-sm">🗑️</button>
+                  <div className="flex items-center gap-1.5">
+                    <button onClick={function() { cart.updateQuantity(item.id, item.quantity - 1); }} className="w-7 h-7 flex items-center justify-center bg-gray-100 rounded-lg text-sm font-bold">−</button>
+                    <span className="text-sm font-bold w-5 text-center">{item.quantity}</span>
+                    <button onClick={function() { cart.updateQuantity(item.id, item.quantity + 1); }} className="w-7 h-7 flex items-center justify-center bg-[#1b4d3e] text-white rounded-lg text-sm font-bold">+</button>
+                  </div>
                 </div>
               </div>
-            </div>
-          );
-        })}
-      </div>
-
-      <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 mb-4">
-        <h3 className="font-bold text-gray-900 mb-3">Order Summary</h3>
-        <div className="space-y-2">
-          <div className="flex justify-between text-sm">
-            <span className="text-gray-500">Subtotal</span>
-            <span className="font-medium">{formatPrice(cart.subtotal)}</span>
-          </div>
-          <div className="flex justify-between text-sm">
-            <span className="text-gray-500">Delivery Fee</span>
-            <span className={'font-medium ' + (cart.deliveryFee === 0 ? 'text-green-600' : '')}>
-              {cart.deliveryFee === 0 ? 'FREE' : formatPrice(cart.deliveryFee)}
-            </span>
-          </div>
-          {cart.subtotal < 15000 ? (
-            <p className="text-[10px] text-green-600 bg-green-50 px-2 py-1 rounded-lg">
-              💡 Add {formatPrice(15000 - cart.subtotal)} more for free delivery!
-            </p>
-          ) : null}
-          <div className="border-t border-gray-100 pt-2 mt-2">
-            <div className="flex justify-between">
-              <span className="font-bold text-gray-900">Total</span>
-              <span className="font-bold text-lg text-[#1b4d3e]">{formatPrice(cart.total)}</span>
-            </div>
-          </div>
+            );
+          })}
         </div>
       </div>
 
-      <button onClick={function() { setShowCheckout(true); }}
-        className="w-full py-4 bg-[#1b4d3e] text-white font-bold rounded-2xl hover:bg-[#153d31] transition-colors shadow-lg text-sm">
-        Proceed to Checkout — {formatPrice(cart.total)}
-      </button>
+      {/* Order Summary Sidebar */}
+      <div className="col-span-1">
+        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 sticky top-24">
+          <h3 className="text-lg font-bold text-gray-900 mb-4">Order Summary</h3>
+          <div className="space-y-3 mb-4">
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-500">Subtotal</span>
+              <span className="font-medium">{formatPrice(cart.subtotal)}</span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-500">Delivery Fee</span>
+              <span className={'font-medium ' + (cart.deliveryFee === 0 ? 'text-green-600' : '')}>
+                {cart.deliveryFee === 0 ? 'FREE' : formatPrice(cart.deliveryFee)}
+              </span>
+            </div>
+            {cart.subtotal < 15000 ? (
+              <p className="text-xs text-green-600 bg-green-50 px-3 py-2 rounded-lg">
+                💡 Add {formatPrice(15000 - cart.subtotal)} more for free delivery!
+              </p>
+            ) : null}
+            <div className="border-t border-gray-100 pt-3">
+              <div className="flex justify-between">
+                <span className="font-bold text-gray-900">Total</span>
+                <span className="font-bold text-xl text-[#1b4d3e]">{formatPrice(cart.total)}</span>
+              </div>
+            </div>
+          </div>
+          <button onClick={function() { setShowCheckout(true); }}
+            className="w-full py-3 bg-[#1b4d3e] text-white font-bold rounded-xl hover:bg-[#153d31] transition-colors shadow-lg text-sm">
+            Proceed to Checkout
+          </button>
+        </div>
+      </div>
 
       {showCheckout ? (
-        <div className="fixed inset-0 z-[100] bg-black/50 flex items-end justify-center">
-          <div className="bg-white w-full max-w-lg rounded-t-3xl p-6 animate-slide-up">
+        <div className="fixed inset-0 z-[100] bg-black/50 flex items-center justify-center p-4">
+          <div className="bg-white w-full max-w-md rounded-2xl p-6 shadow-2xl">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-bold">Order Confirmed! 🎉</h3>
               <button onClick={function() { setShowCheckout(false); }} className="p-2 hover:bg-gray-100 rounded-full text-lg">✕</button>
@@ -959,25 +1042,25 @@ function OrdersPage() {
   ];
 
   return (
-    <div className="px-4 py-4">
-      <h2 className="text-xl font-bold text-gray-900 mb-4">My Orders</h2>
-      <div className="space-y-3">
+    <div>
+      <h2 className="text-2xl font-bold text-gray-900 mb-6">My Orders</h2>
+      <div className="grid grid-cols-2 gap-4">
         {mockOrders.map(function(order) {
           return (
-            <div key={order.id} className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-2">
-                  <span className="text-lg">✅</span>
+            <div key={order.id} className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-3">
+                  <span className="text-2xl">✅</span>
                   <div>
-                    <p className="text-sm font-bold text-gray-900">#{order.id}</p>
-                    <p className="text-[10px] text-gray-400">{order.date}</p>
+                    <p className="text-base font-bold text-gray-900">#{order.id}</p>
+                    <p className="text-xs text-gray-400">{order.date}</p>
                   </div>
                 </div>
-                <span className="px-2.5 py-1 bg-green-100 text-green-700 text-[10px] font-bold rounded-full">{order.status}</span>
+                <span className="px-3 py-1.5 bg-green-100 text-green-700 text-xs font-bold rounded-full">{order.status}</span>
               </div>
-              <div className="flex items-center justify-between pt-2 border-t border-gray-50">
-                <span className="text-xs text-gray-500">{order.count} items</span>
-                <span className="text-sm font-bold text-[#1b4d3e]">{formatPrice(order.total)}</span>
+              <div className="flex items-center justify-between pt-3 border-t border-gray-100">
+                <span className="text-sm text-gray-500">{order.count} items</span>
+                <span className="text-base font-bold text-[#1b4d3e]">{formatPrice(order.total)}</span>
               </div>
             </div>
           );
@@ -997,7 +1080,9 @@ function EditProfileModal(props) {
   var _s = useState({
     name: user.name || '',
     email: user.email || '',
-    phone: user.phone || ''
+    phone: user.phone || '',
+    street: user.street || '',
+    landmark: user.landmark || ''
   });
   var form = _s[0];
   var setForm = _s[1];
@@ -1008,13 +1093,15 @@ function EditProfileModal(props) {
   function handleSubmit(e) {
     e.preventDefault();
     if (!form.name || !form.email || !form.phone) {
-      setError('Please fill in all fields');
+      setError('Please fill in all required fields');
       return;
     }
     var result = auth.updateProfile({
       name: form.name,
       email: form.email,
-      phone: form.phone
+      phone: form.phone,
+      street: form.street,
+      landmark: form.landmark
     });
     if (result.success) {
       props.onClose();
@@ -1024,8 +1111,8 @@ function EditProfileModal(props) {
   }
 
   return (
-    <div className="fixed inset-0 z-[100] bg-black/50 flex items-end justify-center" onClick={props.onClose}>
-      <div className="bg-white w-full max-w-lg rounded-t-3xl p-6 animate-slide-up" onClick={function(e) { e.stopPropagation(); }}>
+    <div className="fixed inset-0 z-[100] bg-black/50 flex items-center justify-center p-4" onClick={props.onClose}>
+      <div className="bg-white w-full max-w-md rounded-2xl p-6 shadow-2xl" onClick={function(e) { e.stopPropagation(); }}>
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-bold text-gray-900">👤 Edit Profile</h3>
           <button onClick={props.onClose} className="p-2 hover:bg-gray-100 rounded-full text-lg">✕</button>
@@ -1059,6 +1146,26 @@ function EditProfileModal(props) {
               onChange={function(e) { setForm(Object.assign({}, form, { phone: e.target.value })); }}
               className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1b4d3e] focus:ring-1 focus:ring-[#1b4d3e]"
               placeholder="+255 712 345 678"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Street Address</label>
+            <input
+              type="text"
+              value={form.street}
+              onChange={function(e) { setForm(Object.assign({}, form, { street: e.target.value })); }}
+              className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1b4d3e] focus:ring-1 focus:ring-[#1b4d3e]"
+              placeholder="e.g., 123 Ali Hassan Mwinyi Road"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Permanent Landmark</label>
+            <input
+              type="text"
+              value={form.landmark}
+              onChange={function(e) { setForm(Object.assign({}, form, { landmark: e.target.value })); }}
+              className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1b4d3e] focus:ring-1 focus:ring-[#1b4d3e]"
+              placeholder="e.g., Near Amana Hospital, Opposite Mikocheni Primary School"
             />
           </div>
           {error ? (
@@ -1124,8 +1231,8 @@ function AddressesModal(props) {
   }
 
   return (
-    <div className="fixed inset-0 z-[100] bg-black/50 flex items-end justify-center" onClick={props.onClose}>
-      <div className="bg-white w-full max-w-lg rounded-t-3xl p-6 animate-slide-up max-h-[80vh] overflow-y-auto" onClick={function(e) { e.stopPropagation(); }}>
+    <div className="fixed inset-0 z-[100] bg-black/50 flex items-center justify-center p-4" onClick={props.onClose}>
+      <div className="bg-white w-full max-w-lg rounded-2xl p-6 shadow-2xl max-h-[85vh] overflow-y-auto" onClick={function(e) { e.stopPropagation(); }}>
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-bold text-gray-900">📍 Delivery Addresses</h3>
           <button onClick={props.onClose} className="p-2 hover:bg-gray-100 rounded-full text-lg">✕</button>
@@ -1251,8 +1358,8 @@ function PaymentMethodsModal(props) {
   var setShowCardForm = _s4[1];
 
   return (
-    <div className="fixed inset-0 z-[100] bg-black/50 flex items-end justify-center" onClick={props.onClose}>
-      <div className="bg-white w-full max-w-lg rounded-t-3xl p-6 animate-slide-up max-h-[85vh] overflow-y-auto" onClick={function(e) { e.stopPropagation(); }}>
+    <div className="fixed inset-0 z-[100] bg-black/50 flex items-center justify-center p-4" onClick={props.onClose}>
+      <div className="bg-white w-full max-w-xl rounded-2xl p-6 shadow-2xl max-h-[85vh] overflow-y-auto" onClick={function(e) { e.stopPropagation(); }}>
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-bold text-gray-900">💳 Payment Methods</h3>
           <button onClick={props.onClose} className="p-2 hover:bg-gray-100 rounded-full text-lg">✕</button>
@@ -1617,7 +1724,7 @@ function AccountPage(props) {
   var setActiveModal = _s[1];
 
   var menuItems = [
-    { icon: '👤', label: 'Edit Profile', desc: 'Name, phone, email', action: 'profile' },
+    { icon: '👤', label: 'Edit Profile', desc: 'Name, phone, location', action: 'profile' },
     { icon: '📍', label: 'Delivery Addresses', desc: 'Manage your addresses', action: 'addresses' },
     { icon: '💳', label: 'Payment Methods', desc: 'M-Pesa, Card', action: 'payments' },
     { icon: '🔔', label: 'Notifications', desc: 'Manage alerts' },
@@ -1626,52 +1733,62 @@ function AccountPage(props) {
   ];
 
   return (
-    <div className="px-4 py-4">
-      <div className="bg-gradient-to-br from-[#1b4d3e] to-[#2d7a5f] rounded-2xl p-5 text-white mb-6 relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-24 h-24 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/2"></div>
-        <div className="flex items-center gap-4">
-          <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center text-2xl">👤</div>
-          <div>
-            <h2 className="text-lg font-bold">{user.name}</h2>
-            <p className="text-sm text-green-200">{user.phone}</p>
-            <p className="text-xs text-green-300 mt-1">{user.email}</p>
-          </div>
-        </div>
-        <div className="flex gap-3 mt-4">
-          <div className="flex-1 bg-white/10 rounded-xl p-3 text-center">
-            <p className="text-lg font-bold">12</p>
-            <p className="text-[10px] text-green-200">Orders</p>
-          </div>
-          <div className="flex-1 bg-white/10 rounded-xl p-3 text-center">
-            <p className="text-lg font-bold">TZS 4.5K</p>
-            <p className="text-[10px] text-green-200">Saved</p>
-          </div>
-          <div className="flex-1 bg-white/10 rounded-xl p-3 text-center">
-            <p className="text-lg font-bold">⭐ 4.8</p>
-            <p className="text-[10px] text-green-200">Rating</p>
-          </div>
-        </div>
-      </div>
-
-      <div className="space-y-2">
-        {menuItems.map(function(item, i) {
-          return (
-            <button key={i} onClick={function() { if (item.action) setActiveModal(item.action); }} className="w-full flex items-center gap-3 p-4 bg-white rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-all text-left">
-              <div className="w-10 h-10 bg-green-50 rounded-xl flex items-center justify-center text-lg">{item.icon}</div>
-              <div className="flex-1">
-                <p className="text-sm font-semibold text-gray-900">{item.label}</p>
-                <p className="text-[10px] text-gray-400">{item.desc}</p>
+    <div className="grid grid-cols-3 gap-6">
+      {/* Profile Sidebar */}
+      <div className="col-span-1">
+        <div className="bg-gradient-to-br from-[#1b4d3e] to-[#2d7a5f] rounded-2xl p-6 text-white relative overflow-hidden sticky top-24">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/2"></div>
+          <div className="relative z-10">
+            <div className="w-20 h-20 bg-white/20 rounded-full flex items-center justify-center text-3xl mx-auto mb-4">👤</div>
+            <h2 className="text-xl font-bold text-center">{user.name}</h2>
+            <p className="text-sm text-green-200 text-center mt-1">{user.phone}</p>
+            <p className="text-xs text-green-300 text-center mt-1">{user.email}</p>
+            {user.street ? (
+              <p className="text-xs text-green-200 text-center mt-2">📍 {user.street}</p>
+            ) : null}
+            {user.landmark ? (
+              <p className="text-xs text-green-200 text-center">🏛️ {user.landmark}</p>
+            ) : null}
+            <div className="grid grid-cols-3 gap-2 mt-6">
+              <div className="bg-white/10 rounded-xl p-3 text-center">
+                <p className="text-xl font-bold">12</p>
+                <p className="text-[10px] text-green-200">Orders</p>
               </div>
-              <span className="text-gray-300">›</span>
+              <div className="bg-white/10 rounded-xl p-3 text-center">
+                <p className="text-xl font-bold">4.5K</p>
+                <p className="text-[10px] text-green-200">Saved</p>
+              </div>
+              <div className="bg-white/10 rounded-xl p-3 text-center">
+                <p className="text-xl font-bold">4.8</p>
+                <p className="text-[10px] text-green-200">Rating</p>
+              </div>
+            </div>
+            <button onClick={auth.logout} className="w-full mt-6 py-3 bg-white/10 hover:bg-white/20 text-white font-semibold rounded-xl transition-colors text-sm">
+              Log Out
             </button>
-          );
-        })}
+          </div>
+        </div>
       </div>
 
-      <button onClick={auth.logout} className="w-full mt-6 py-3 border-2 border-red-200 text-red-500 font-semibold rounded-2xl hover:bg-red-50 transition-colors text-sm">
-        Log Out
-      </button>
-      <p className="text-center text-[10px] text-gray-300 mt-4">SOKOLETU v1.0.0</p>
+      {/* Settings Content */}
+      <div className="col-span-2">
+        <h2 className="text-2xl font-bold text-gray-900 mb-6">Account Settings</h2>
+        <div className="grid grid-cols-2 gap-4">
+          {menuItems.map(function(item, i) {
+            return (
+              <button key={i} onClick={function() { if (item.action) setActiveModal(item.action); }} className="w-full flex items-center gap-3 p-5 bg-white rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-all text-left">
+                <div className="w-12 h-12 bg-green-50 rounded-xl flex items-center justify-center text-xl">{item.icon}</div>
+                <div className="flex-1">
+                  <p className="text-base font-semibold text-gray-900">{item.label}</p>
+                  <p className="text-xs text-gray-400">{item.desc}</p>
+                </div>
+                <span className="text-gray-300 text-xl">›</span>
+              </button>
+            );
+          })}
+        </div>
+        <p className="text-center text-xs text-gray-400 mt-8">SOKOLETU v1.0.0</p>
+      </div>
 
       {activeModal === 'profile' ? (
         <EditProfileModal onClose={function() { setActiveModal(null); }} />
@@ -1714,42 +1831,47 @@ function AppContent() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <header className="bg-white sticky top-0 z-40 shadow-sm">
-        <div className="max-w-lg mx-auto px-4 py-3">
+      <header className="bg-white sticky top-0 z-40 shadow-sm border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="w-9 h-9 bg-gradient-to-br from-[#1b4d3e] to-[#2d7a5f] rounded-xl flex items-center justify-center">
-                <span className="text-white font-bold text-sm">S</span>
+            <div className="flex items-center gap-8">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-gradient-to-br from-[#1b4d3e] to-[#2d7a5f] rounded-xl flex items-center justify-center">
+                  <span className="text-white font-bold text-lg">S</span>
+                </div>
+                <div>
+                  <h1 className="text-xl font-bold text-[#1b4d3e] leading-none">SOKOLETU</h1>
+                  <button onClick={function() { setShowLocationModal(true); }} className="flex items-center gap-1 text-xs text-gray-500 mt-0.5">
+                    📍 <span>{location}</span> <span>›</span>
+                  </button>
+                </div>
               </div>
-              <div>
-                <h1 className="text-lg font-bold text-[#1b4d3e] leading-none">SOKOLETU</h1>
-                <button onClick={function() { setShowLocationModal(true); }} className="flex items-center gap-1 text-xs text-gray-500">
-                  📍 <span>{location}</span> <span>›</span>
-                </button>
-              </div>
+              <nav className="hidden md:flex items-center gap-1">
+                <NavButton active={currentPage === 'home'} onClick={function() { setCurrentPage('home'); }} icon="🏠" label="Home" />
+                <NavButton active={currentPage === 'categories'} onClick={function() { setCurrentPage('categories'); }} icon="🏷️" label="Categories" />
+                <NavButton active={currentPage === 'orders'} onClick={function() { setCurrentPage('orders'); }} icon="📦" label="Orders" />
+                <NavButton active={currentPage === 'cart'} onClick={function() { setCurrentPage('cart'); }} icon="🛒" label="Cart" />
+                <NavButton active={currentPage === 'account'} onClick={function() { setCurrentPage('account'); }} icon="👤" label="Account" />
+              </nav>
             </div>
-            <div className="flex items-center gap-3">
-              <button className="relative p-2 text-gray-600">
-                <span className="text-lg">🔔</span>
+            <div className="flex items-center gap-4">
+              <button className="relative p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
+                <span className="text-xl">🔔</span>
                 <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
               </button>
-              <button className="p-2 text-gray-600"><span className="text-lg">⭐</span></button>
+              <button className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
+                <span className="text-xl">⭐</span>
+              </button>
+              <button onClick={function() { setCurrentPage('account'); }} className="flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors">
+                <span className="text-sm">👤</span>
+                <span className="text-sm font-medium text-gray-700">Profile</span>
+              </button>
             </div>
           </div>
         </div>
       </header>
 
-      <main className="max-w-lg mx-auto pb-20">{renderPage()}</main>
-
-      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 z-50 shadow-lg">
-        <div className="max-w-lg mx-auto flex justify-around items-center py-2">
-          <NavButton active={currentPage === 'home'} onClick={function() { setCurrentPage('home'); }} icon="🏠" label="Home" />
-          <NavButton active={currentPage === 'categories'} onClick={function() { setCurrentPage('categories'); }} icon="🏷️" label="Categories" />
-          <NavButton active={currentPage === 'orders'} onClick={function() { setCurrentPage('orders'); }} icon="📦" label="Orders" />
-          <NavButton active={currentPage === 'cart'} onClick={function() { setCurrentPage('cart'); }} icon="🛒" label="Cart" />
-          <NavButton active={currentPage === 'account'} onClick={function() { setCurrentPage('account'); }} icon="👤" label="Account" />
-        </div>
-      </nav>
+      <main className="max-w-7xl mx-auto px-6 py-6">{renderPage()}</main>
 
       {showLocationModal ? (
         <LocationModal
