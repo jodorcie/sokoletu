@@ -79,6 +79,19 @@ function AuthProvider(props) {
   var setUser = _s[1];
 
   useEffect(function() {
+    // Seed default user account if not exists
+    var users = JSON.parse(localStorage.getItem('sokoletu_users') || '[]');
+    var joelExists = users.find(function(u) { return u.email === 'joel@gmail.com'; });
+    if (!joelExists) {
+      users.push({
+        name: 'Joel',
+        email: 'joel@gmail.com',
+        phone: '+255 712 000 000',
+        password: 'ngushwai'
+      });
+      localStorage.setItem('sokoletu_users', JSON.stringify(users));
+    }
+
     var savedUser = localStorage.getItem('sokoletu_user');
     if (savedUser) {
       try {
@@ -262,6 +275,13 @@ function LoginPage(props) {
             {loading ? 'Signing in...' : 'Sign In'}
           </button>
         </form>
+
+        {/* Demo Credentials Hint */}
+        <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-xl">
+          <p className="text-xs font-semibold text-blue-800 mb-1">🔑 Demo Account</p>
+          <p className="text-xs text-blue-700">Email: <span className="font-mono font-bold">joel@gmail.com</span></p>
+          <p className="text-xs text-blue-700">Password: <span className="font-mono font-bold">ngushwai</span></p>
+        </div>
 
         <div className="mt-6 text-center">
           <p className="text-sm text-gray-600">
