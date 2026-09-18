@@ -5,10 +5,6 @@ import { useState, useEffect, createContext, useContext, useCallback } from 'rea
    DATA & CONSTANTS
    ============================================ */
 
-/* ============================================
-   DATA
-   ============================================ */
-
 var categories = [
   { id: 'vegetables', name: 'Vegetables', emoji: '🥬', color: 'from-green-400 to-green-600' },
   { id: 'fruits', name: 'Fruits', emoji: '🍎', color: 'from-red-400 to-red-600' },
@@ -69,6 +65,384 @@ var banners = [
 
 function formatPrice(price) {
   return 'TZS ' + price.toLocaleString();
+}
+
+/* ============================================
+   AUTH CONTEXT
+   ============================================ */
+
+var AuthContext = createContext(null);
+
+function AuthProvider(props) {
+  var _s = useState(null);
+  var user = _s[0];
+  var setUser = _s[1];
+
+  useEffect(function() {
+    var savedUser = localStorage.getItem('sokoletu_user');
+    if (savedUser) {
+      try {
+        setUser(JSON.parse(savedUser));
+      } catch (e) {
+        localStorage.removeItem('sokoletu_user');
+      }
+    }
+  }, []);
+
+  function login(email, password) {
+    var users = JSON.parse(localStorage.getItem('sokoletu_users') || '[]');
+    var foundUser = users.find(function(u) { return u.email === email && u.password === password; });
+    if (foundUser) {
+      var userData = { name: foundUser.name, email: foundUser.email, phone: foundUser.phone };
+      setUser(userData);
+      localStorage.setItem('sokoletu_user', JSON.stringify(userData));
+      return { success: true };
+    }
+    return { success: false, error: 'Invalid email or password' };
+  }
+
+  function loginWithGoogle() {
+    var googleUser = {
+      name: 'Google User',
+      email: 'user@gmail.com',
+      phone: '+255 700 000 000',
+      isGoogle: true
+    };
+    setUser(googleUser);
+    localStorage.setItem('sokoletu_user', JSON.stringify(googleUser));
+    return { success: true };
+  }
+
+  function signup(name, email, phone, password) {
+    var users = JSON.parse(localStorage.getItem('sokoletu_users') || '[]');
+    var exists = users.find(function(u) { return u.email === email; });
+    if (exists) {
+      return { success: false, error: 'Email already registered' };
+    }
+    var newUser = { name: name, email: email, phone: phone, password: password };
+    users.push(newUser);
+    localStorage.setItem('sokoletu_users', JSON.stringify(users));
+    var userData = { name: name, email: email, phone: phone };
+    setUser(userData);
+    localStorage.setItem('sokoletu_user', JSON.stringify(userData));
+    return { success: true };
+  }
+
+  function logout() {
+    setUser(null);
+    localStorage.removeItem('sokoletu_user');
+  }
+
+  var value = {
+    user: user,
+    login: login,
+    loginWithGoogle: loginWithGoogle,
+    signup: signup,
+    logout: logout
+  };
+
+  return <AuthContext.Provider value={value}>{props.children}</AuthContext.Provider>;
+}
+
+function useAuth() {
+  var context = useContext(AuthContext);
+  if (!context) throw new Error('useAuth must be used within AuthProvider');
+  return context;
+}
+
+/* ============================================
+   LOGIN PAGE
+   ============================================ */
+
+function LoginPage(props) {
+  var auth = useAuth();
+  var _s = useState({ email: '', password: '' });
+  var form = _s[0];
+  var setForm = _s[1];
+  var _s2 = useState('');
+  var error = _s2[0];
+  var setError = _s2[1];
+  var _s3 = useState(false);
+  var loading = _s3[0];
+  var setLoading = _s3[1];
+
+  function handleSubmit(e) {
+    e.preventDefault();
+    setError('');
+    if (!form.email || !form.password) {
+      setError('Please fill in all fields');
+      return;
+    }
+    setLoading(true);
+    setTimeout(function() {
+      var result = auth.login(form.email, form.password);
+      setLoading(false);
+      if (!result.success) {
+        setError(result.error);
+      }
+    }, 800);
+  }
+
+  function handleGoogleLogin() {
+    setLoading(true);
+    setTimeout(function() {
+      auth.loginWithGoogle();
+      setLoading(false);
+    }, 800);
+  }
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-[#1b4d3e] to-[#2d7a5f] flex items-center justify-center p-4">
+      <div className="bg-white rounded-3xl p-8 w-full max-w-md shadow-2xl">
+        <div className="text-center mb-8">
+          <div className="w-16 h-16 bg-gradient-to-br from-[#1b4d3e] to-[#2d7a5f] rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <span className="text-white font-bold text-2xl">S</span>
+          </div>
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">Welcome to SOKOLETU</h1>
+          <p className="text-gray-500 text-sm">Fresh local delivery at your doorstep</p>
+        </div>
+
+        <button
+          onClick={handleGoogleLogin}
+          disabled={loading}
+          className="w-full flex items-center justify-center gap-3 px-4 py-3 border-2 border-gray-200 rounded-xl hover:bg-gray-50 transition-colors mb-4 disabled:opacity-50"
+        >
+          <svg className="w-5 h-5" viewBox="0 0 24 24">
+            <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+            <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+            <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+            <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+          </svg>
+          <span className="font-medium text-gray-700">Continue with Google</span>
+        </button>
+
+        <div className="relative my-6">
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full border-t border-gray-200"></div>
+          </div>
+          <div className="relative flex justify-center text-sm">
+            <span className="px-4 bg-white text-gray-500">Or continue with email</span>
+          </div>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+            <input
+              type="email"
+              value={form.email}
+              onChange={function(e) { setForm(Object.assign({}, form, { email: e.target.value })); }}
+              className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1b4d3e] focus:ring-1 focus:ring-[#1b4d3e]"
+              placeholder="your@email.com"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+            <input
+              type="password"
+              value={form.password}
+              onChange={function(e) { setForm(Object.assign({}, form, { password: e.target.value })); }}
+              className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1b4d3e] focus:ring-1 focus:ring-[#1b4d3e]"
+              placeholder="••••••••"
+            />
+          </div>
+
+          {error ? (
+            <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm">
+              {error}
+            </div>
+          ) : null}
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full py-3 bg-[#1b4d3e] text-white font-semibold rounded-xl hover:bg-[#153d31] transition-colors disabled:opacity-50"
+          >
+            {loading ? 'Signing in...' : 'Sign In'}
+          </button>
+        </form>
+
+        <div className="mt-6 text-center">
+          <p className="text-sm text-gray-600">
+            Don't have an account?{' '}
+            <button onClick={props.onSwitch} className="text-[#1b4d3e] font-semibold hover:underline">
+              Sign Up
+            </button>
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ============================================
+   SIGNUP PAGE
+   ============================================ */
+
+function SignupPage(props) {
+  var auth = useAuth();
+  var _s = useState({ name: '', email: '', phone: '', password: '', confirmPassword: '' });
+  var form = _s[0];
+  var setForm = _s[1];
+  var _s2 = useState('');
+  var error = _s2[0];
+  var setError = _s2[1];
+  var _s3 = useState(false);
+  var loading = _s3[0];
+  var setLoading = _s3[1];
+
+  function handleSubmit(e) {
+    e.preventDefault();
+    setError('');
+    
+    if (!form.name || !form.email || !form.phone || !form.password || !form.confirmPassword) {
+      setError('Please fill in all fields');
+      return;
+    }
+    if (form.password !== form.confirmPassword) {
+      setError('Passwords do not match');
+      return;
+    }
+    if (form.password.length < 6) {
+      setError('Password must be at least 6 characters');
+      return;
+    }
+
+    setLoading(true);
+    setTimeout(function() {
+      var result = auth.signup(form.name, form.email, form.phone, form.password);
+      setLoading(false);
+      if (!result.success) {
+        setError(result.error);
+      }
+    }, 800);
+  }
+
+  function handleGoogleSignup() {
+    setLoading(true);
+    setTimeout(function() {
+      auth.loginWithGoogle();
+      setLoading(false);
+    }, 800);
+  }
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-[#1b4d3e] to-[#2d7a5f] flex items-center justify-center p-4">
+      <div className="bg-white rounded-3xl p-8 w-full max-w-md shadow-2xl">
+        <div className="text-center mb-8">
+          <div className="w-16 h-16 bg-gradient-to-br from-[#1b4d3e] to-[#2d7a5f] rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <span className="text-white font-bold text-2xl">S</span>
+          </div>
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">Create Account</h1>
+          <p className="text-gray-500 text-sm">Join SOKOLETU for fresh local delivery</p>
+        </div>
+
+        <button
+          onClick={handleGoogleSignup}
+          disabled={loading}
+          className="w-full flex items-center justify-center gap-3 px-4 py-3 border-2 border-gray-200 rounded-xl hover:bg-gray-50 transition-colors mb-4 disabled:opacity-50"
+        >
+          <svg className="w-5 h-5" viewBox="0 0 24 24">
+            <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+            <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+            <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+            <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+          </svg>
+          <span className="font-medium text-gray-700">Sign up with Google</span>
+        </button>
+
+        <div className="relative my-6">
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full border-t border-gray-200"></div>
+          </div>
+          <div className="relative flex justify-center text-sm">
+            <span className="px-4 bg-white text-gray-500">Or sign up with email</span>
+          </div>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
+            <input
+              type="text"
+              value={form.name}
+              onChange={function(e) { setForm(Object.assign({}, form, { name: e.target.value })); }}
+              className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1b4d3e] focus:ring-1 focus:ring-[#1b4d3e]"
+              placeholder="John Doe"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+            <input
+              type="email"
+              value={form.email}
+              onChange={function(e) { setForm(Object.assign({}, form, { email: e.target.value })); }}
+              className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1b4d3e] focus:ring-1 focus:ring-[#1b4d3e]"
+              placeholder="your@email.com"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
+            <input
+              type="tel"
+              value={form.phone}
+              onChange={function(e) { setForm(Object.assign({}, form, { phone: e.target.value })); }}
+              className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1b4d3e] focus:ring-1 focus:ring-[#1b4d3e]"
+              placeholder="+255 712 345 678"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+            <input
+              type="password"
+              value={form.password}
+              onChange={function(e) { setForm(Object.assign({}, form, { password: e.target.value })); }}
+              className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1b4d3e] focus:ring-1 focus:ring-[#1b4d3e]"
+              placeholder="••••••••"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Confirm Password</label>
+            <input
+              type="password"
+              value={form.confirmPassword}
+              onChange={function(e) { setForm(Object.assign({}, form, { confirmPassword: e.target.value })); }}
+              className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1b4d3e] focus:ring-1 focus:ring-[#1b4d3e]"
+              placeholder="••••••••"
+            />
+          </div>
+
+          {error ? (
+            <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm">
+              {error}
+            </div>
+          ) : null}
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full py-3 bg-[#1b4d3e] text-white font-semibold rounded-xl hover:bg-[#153d31] transition-colors disabled:opacity-50"
+          >
+            {loading ? 'Creating account...' : 'Create Account'}
+          </button>
+        </form>
+
+        <div className="mt-6 text-center">
+          <p className="text-sm text-gray-600">
+            Already have an account?{' '}
+            <button onClick={props.onSwitch} className="text-[#1b4d3e] font-semibold hover:underline">
+              Sign In
+            </button>
+          </p>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 /* ============================================
@@ -281,7 +655,6 @@ function HomePage(props) {
 
   return (
     <div className="px-4 py-4 space-y-6">
-      {/* Search */}
       <div className="relative">
         <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">🔍</span>
         <input type="text" value={search} onChange={function(e) { setSearch(e.target.value); }}
@@ -289,7 +662,6 @@ function HomePage(props) {
           className="w-full pl-11 pr-4 py-3 bg-gray-100 rounded-2xl focus:outline-none focus:ring-2 focus:ring-[#1b4d3e]/20 focus:bg-white transition-all text-sm" />
       </div>
 
-      {/* Banner Carousel */}
       <div className="relative overflow-hidden rounded-2xl">
         <div className="flex transition-transform duration-500 ease-out" style={{ transform: 'translateX(-' + (bannerIndex * 100) + '%)' }}>
           {banners.map(function(banner) {
@@ -313,7 +685,6 @@ function HomePage(props) {
         </div>
       </div>
 
-      {/* Categories */}
       <div>
         <div className="flex items-center justify-between mb-3">
           <h3 className="font-bold text-gray-900">Categories</h3>
@@ -334,7 +705,6 @@ function HomePage(props) {
         </div>
       </div>
 
-      {/* Smart Basket */}
       <div className="bg-gradient-to-br from-[#1b4d3e] to-[#2d7a5f] rounded-2xl p-5 text-white relative overflow-hidden">
         <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/2"></div>
         <div className="relative z-10">
@@ -358,7 +728,6 @@ function HomePage(props) {
         </div>
       </div>
 
-      {/* Fresh Today */}
       <div>
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
@@ -372,7 +741,6 @@ function HomePage(props) {
         </div>
       </div>
 
-      {/* Hot Deals */}
       <div>
         <div className="flex items-center justify-between mb-3">
           <h3 className="font-bold text-gray-900">Hot Deals 🔥</h3>
@@ -383,7 +751,6 @@ function HomePage(props) {
         </div>
       </div>
 
-      {/* Trust Badges */}
       <div className="grid grid-cols-3 gap-3 pt-2">
         <div className="flex flex-col items-center text-center p-3 bg-white rounded-xl border border-gray-100">
           <span className="text-xl mb-1">🚚</span>
@@ -590,6 +957,9 @@ function OrdersPage() {
    ============================================ */
 
 function AccountPage(props) {
+  var auth = useAuth();
+  var user = auth.user;
+  
   var menuItems = [
     { icon: '👤', label: 'Edit Profile', desc: 'Name, phone, email' },
     { icon: '📍', label: 'Delivery Addresses', desc: props.location },
@@ -606,9 +976,9 @@ function AccountPage(props) {
         <div className="flex items-center gap-4">
           <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center text-2xl">👤</div>
           <div>
-            <h2 className="text-lg font-bold">Amina Hassan</h2>
-            <p className="text-sm text-green-200">+255 712 345 678</p>
-            <p className="text-xs text-green-300 mt-1">Member since 2024</p>
+            <h2 className="text-lg font-bold">{user.name}</h2>
+            <p className="text-sm text-green-200">{user.phone}</p>
+            <p className="text-xs text-green-300 mt-1">{user.email}</p>
           </div>
         </div>
         <div className="flex gap-3 mt-4">
@@ -642,7 +1012,7 @@ function AccountPage(props) {
         })}
       </div>
 
-      <button className="w-full mt-6 py-3 border-2 border-red-200 text-red-500 font-semibold rounded-2xl hover:bg-red-50 transition-colors text-sm">
+      <button onClick={auth.logout} className="w-full mt-6 py-3 border-2 border-red-200 text-red-500 font-semibold rounded-2xl hover:bg-red-50 transition-colors text-sm">
         Log Out
       </button>
       <p className="text-center text-[10px] text-gray-300 mt-4">SOKOLETU v1.0.0</p>
@@ -678,7 +1048,6 @@ function AppContent() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
       <header className="bg-white sticky top-0 z-40 shadow-sm">
         <div className="max-w-lg mx-auto px-4 py-3">
           <div className="flex items-center justify-between">
@@ -704,10 +1073,8 @@ function AppContent() {
         </div>
       </header>
 
-      {/* Main */}
       <main className="max-w-lg mx-auto pb-20">{renderPage()}</main>
 
-      {/* Bottom Nav */}
       <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 z-50 shadow-lg">
         <div className="max-w-lg mx-auto flex justify-around items-center py-2">
           <NavButton active={currentPage === 'home'} onClick={function() { setCurrentPage('home'); }} icon="🏠" label="Home" />
@@ -718,7 +1085,6 @@ function AppContent() {
         </div>
       </nav>
 
-      {/* Location Modal */}
       {showLocationModal ? (
         <LocationModal
           currentLocation={location}
@@ -731,14 +1097,38 @@ function AppContent() {
 }
 
 /* ============================================
+   AUTH WRAPPER
+   ============================================ */
+
+function AuthWrapper() {
+  var auth = useAuth();
+  var _s = useState('login');
+  var authPage = _s[0];
+  var setAuthPage = _s[1];
+
+  if (!auth.user) {
+    if (authPage === 'signup') {
+      return <SignupPage onSwitch={function() { setAuthPage('login'); }} />;
+    }
+    return <LoginPage onSwitch={function() { setAuthPage('signup'); }} />;
+  }
+
+  return (
+    <CartProvider>
+      <AppContent />
+    </CartProvider>
+  );
+}
+
+/* ============================================
    APP ROOT
    ============================================ */
 
 function App() {
   return (
-    <CartProvider>
-      <AppContent />
-    </CartProvider>
+    <AuthProvider>
+      <AuthWrapper />
+    </AuthProvider>
   );
 }
 
