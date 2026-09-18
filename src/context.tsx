@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useCallback, type ReactNode } from 'react';
-import type { Product, CartItem } from './data';
+import { type Product, type CartItem } from './data';
 
 interface CartContextType {
   items: CartItem[];
@@ -13,7 +13,7 @@ interface CartContextType {
   total: number;
 }
 
-const CartContext = createContext<CartContextType | null>(null);
+const CartContext = createContext<CartContextType | undefined>(undefined);
 
 export function CartProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([]);
@@ -51,13 +51,10 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const deliveryFee = subtotal > 15000 ? 0 : 1500;
   const total = subtotal + deliveryFee;
 
-  const value: CartContextType = {
-    items, addItem, removeItem, updateQuantity, clearCart,
-    totalItems, subtotal, deliveryFee, total
-  };
-
   return (
-    <CartContext.Provider value={value}>
+    <CartContext.Provider
+      value={{ items, addItem, removeItem, updateQuantity, clearCart, totalItems, subtotal, deliveryFee, total }}
+    >
       {children}
     </CartContext.Provider>
   );
@@ -65,8 +62,6 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
 export function useCart(): CartContextType {
   const context = useContext(CartContext);
-  if (!context) {
-    throw new Error('useCart must be used within a CartProvider');
-  }
+  if (!context) throw new Error('useCart must be used within CartProvider');
   return context;
 }

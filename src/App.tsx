@@ -15,7 +15,7 @@ import {
   X,
   Tag,
   Clock,
-  Heart,
+  Star,
   Bell,
   Check,
   Truck,
@@ -41,12 +41,12 @@ function AppContent() {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [showLocationModal, setShowLocationModal] = useState(false);
   const [location, setLocation] = useState('Mikocheni, DSM');
-  const [searchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
 
   const renderPage = () => {
     switch (currentPage) {
       case 'home':
-        return <HomePage searchQuery={searchQuery} onCategorySelect={(cat) => { setSelectedCategory(cat); setCurrentPage('categories'); }} />;
+        return <HomePage searchQuery={searchQuery} onCategorySelect={(cat: string) => { setSelectedCategory(cat); setCurrentPage('categories'); }} />;
       case 'categories':
         return <CategoriesPage selectedCategory={selectedCategory} setSelectedCategory={setSelectedCategory} />;
       case 'orders':
@@ -56,7 +56,7 @@ function AppContent() {
       case 'account':
         return <AccountPage location={location} setLocation={setLocation} />;
       default:
-        return <HomePage searchQuery={searchQuery} onCategorySelect={(cat) => { setSelectedCategory(cat); setCurrentPage('categories'); }} />;
+        return <HomePage searchQuery={searchQuery} onCategorySelect={(cat: string) => { setSelectedCategory(cat); setCurrentPage('categories'); }} />;
     }
   };
 
@@ -88,7 +88,7 @@ function AppContent() {
                 <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
               </button>
               <button className="p-2 text-gray-600 hover:text-[#1b4d3e] transition-colors">
-                <Heart size={20} />
+                <Star size={20} />
               </button>
             </div>
           </div>
@@ -116,7 +116,7 @@ function AppContent() {
         <LocationModal
           currentLocation={location}
           onClose={() => setShowLocationModal(false)}
-          onSave={(loc) => { setLocation(loc); setShowLocationModal(false); }}
+          onSave={(loc: string) => { setLocation(loc); setShowLocationModal(false); }}
         />
       )}
     </div>
@@ -124,14 +124,7 @@ function AppContent() {
 }
 
 // ============ NAV BUTTON ============
-interface NavButtonProps {
-  active: boolean;
-  onClick: () => void;
-  icon: LucideIcon;
-  label: string;
-}
-
-function NavButton({ active, onClick, icon: Icon, label }: NavButtonProps) {
+function NavButton({ active, onClick, icon: Icon, label }: { active: boolean; onClick: () => void; icon: LucideIcon; label: string }) {
   const { totalItems } = useCart();
   return (
     <button
@@ -154,13 +147,7 @@ function NavButton({ active, onClick, icon: Icon, label }: NavButtonProps) {
 }
 
 // ============ LOCATION MODAL ============
-interface LocationModalProps {
-  currentLocation: string;
-  onClose: () => void;
-  onSave: (loc: string) => void;
-}
-
-function LocationModal({ currentLocation, onClose, onSave }: LocationModalProps) {
+function LocationModal({ currentLocation, onClose, onSave }: { currentLocation: string; onClose: () => void; onSave: (loc: string) => void }) {
   const [newLocation, setNewLocation] = useState(currentLocation);
   const suggestions = ['Mikocheni, DSM', 'Masaki, DSM', 'Kinondoni, DSM', 'Mbezi Beach, DSM', 'Kariakoo, DSM', 'Upanga, DSM'];
 
@@ -211,12 +198,7 @@ function LocationModal({ currentLocation, onClose, onSave }: LocationModalProps)
 }
 
 // ============ HOME PAGE ============
-interface HomePageProps {
-  searchQuery: string;
-  onCategorySelect: (cat: string) => void;
-}
-
-function HomePage({ onCategorySelect }: HomePageProps) {
+function HomePage({ searchQuery, onCategorySelect }: { searchQuery: string; onCategorySelect: (cat: string) => void }) {
   const [bannerIndex, setBannerIndex] = useState(0);
   const [search, setSearch] = useState('');
 
@@ -254,7 +236,7 @@ function HomePage({ onCategorySelect }: HomePageProps) {
               className={`min-w-full bg-gradient-to-r ${banner.gradient} p-6 rounded-2xl text-white relative overflow-hidden`}
             >
               <div className="relative z-10">
-                <p className="text-xs font-medium opacity-80 mb-1">🔥 Today&apos;s Deal</p>
+                <p className="text-xs font-medium opacity-80 mb-1">🔥 Today's Deal</p>
                 <h2 className="text-xl font-bold mb-1">{banner.title}</h2>
                 <p className="text-sm opacity-90">{banner.subtitle}</p>
                 <button className="mt-3 px-4 py-2 bg-white/20 backdrop-blur-sm rounded-lg text-sm font-medium hover:bg-white/30 transition-colors">
@@ -369,11 +351,7 @@ function HomePage({ onCategorySelect }: HomePageProps) {
 }
 
 // ============ PRODUCT CARD ============
-interface ProductCardProps {
-  product: Product;
-}
-
-function ProductCard({ product }: ProductCardProps) {
+function ProductCard({ product }: { product: Product }) {
   const { addItem, items, updateQuantity } = useCart();
   const cartItem = items.find(i => i.id === product.id);
 
@@ -433,12 +411,7 @@ function ProductCard({ product }: ProductCardProps) {
 }
 
 // ============ CATEGORIES PAGE ============
-interface CategoriesPageProps {
-  selectedCategory: string | null;
-  setSelectedCategory: (cat: string | null) => void;
-}
-
-function CategoriesPage({ selectedCategory, setSelectedCategory }: CategoriesPageProps) {
+function CategoriesPage({ selectedCategory, setSelectedCategory }: { selectedCategory: string | null; setSelectedCategory: (cat: string | null) => void }) {
   const filteredProducts = selectedCategory
     ? products.filter(p => p.category === selectedCategory)
     : products;
@@ -655,18 +628,13 @@ function OrdersPage() {
 }
 
 // ============ ACCOUNT PAGE ============
-interface AccountPageProps {
-  location: string;
-  setLocation: (loc: string) => void;
-}
-
-function AccountPage({ location }: AccountPageProps) {
+function AccountPage({ location }: { location: string; setLocation: (loc: string) => void }) {
   const menuItems = [
     { icon: User, label: 'Edit Profile', desc: 'Name, phone, email' },
     { icon: MapPin, label: 'Delivery Addresses', desc: location },
     { icon: Tag, label: 'Payment Methods', desc: 'M-Pesa, Card' },
     { icon: Bell, label: 'Notifications', desc: 'Manage alerts' },
-    { icon: Heart, label: 'Favorites', desc: 'Your saved items' },
+    { icon: Star, label: 'Rate & Review', desc: 'Your feedback matters' },
     { icon: Shield, label: 'Privacy & Security', desc: 'Data & permissions' },
   ];
 
